@@ -1,17 +1,28 @@
 @page "/mm"
 @using dsweb_electron6.Models
 @using dsweb_electron6.Data;
+@using dsmm_server.Data;
+@using dsmm_server.Models;
 @using System.Threading;
+
 @inject MMservice _mm
-@attribute [Authorize]
+@inject AuthenticationStateProvider _auth
+@inject StartUp _startUp
 
 <h3>Matchmaking</h3>
 <br />
-@if (MMcredential == false)
+<AuthorizeView>
+<NotAuthorized>
+    <h5>You are not signed in. You can save your settings by creating an account.</h5>
+    <br />
+</NotAuthorized>
+</AuthorizeView>
+
+@if (_conf.Credential == false)
 {
     <div class="row">
         <div class="custom-control custom-checkbox w-25">
-            <input type="checkbox" class="custom-control-input" name="cb_mm_credential" id="cb_mm_credential" @bind="@MMcredential" />
+            <input type="checkbox" class="custom-control-input" name="cb_mm_credential" id="cb_mm_credential" @bind="_conf.Credential" />
             <label class="custom-control-label" for="cb_mm_credential">Allow Matchmaking</label>
         </div>
         <div class="w-auto">
@@ -20,21 +31,45 @@
                 and show rankings on <a href="https://www.pax77.org/dsweb/ladder">https://www.pax77.org/dsweb/ladder</a>.
                 <br />
                 The data will not be used for any other purpose and will not be disclosed to third parties.
-                You can decline to the agreement at any time by unchecking the Credential and delete all data with the <a href="config">Deleteme</a> button.
+                You can decline to the agreement at any time by unchecking the Credential and delete all data with the <a href="Identity/Account/Manage/PersonalData">Deleteme</a> button.
             </label>
         </div>
     </div>
 }
-else if (MMDeleted == true)
+else if (_conf.Deleted == true)
 {
     <div class="jumbotron">
         Deleted. You will be able to rejoin the mm-system in @(MMDel - 3) days.
     </div>
 }
-
+else if (_conf.Player == "")
+{
+    <h5>Please enter your ingame Starcraft 2 Player name e.g. shown in the loading screen of Direct Strike</h5>
+    <div class="form-group">
+        <label for="player_temp">
+            Player
+        </label>
+        <input type="text" name="Players" id="player_temp" @bind="temp_Playername" class="w-75" />
+    </div>
+    <button class="btn btn-primary mb-2" @onclick="@Save">Save</button>
+    <div class="mb-3">
+        @if (Failed == true)
+        {
+            <span class="badge badge-danger">
+                Saving failed. Please check your Playername.
+            </span>
+            <p>@Error</p>
+        }
+        else if (Saved == true)
+        {
+            <span class="badge badge-success">
+                Settings successfully saved.
+            </span>
+        }
+    </div>
+}
 else
 {
-
     <div class="container-fluid">
         <div class="row">
             <div>
@@ -59,7 +94,7 @@ else
                             <label for="ip_playername" class="control-label">
                                 Player:
                             </label>
-                            <input type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="@Playername" />
+                            <input type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="_conf.Player" />
                         </div>
                     </div>
                     <div class="form-group mr-2">
@@ -177,22 +212,23 @@ else
                     <tbody>
                         @if (repid == 0)
                         {
-                        @for (int i = 0; i < 3; i++)
-                        {
-                            <tr>
-                                <td>Player @(i + 1)</td>
-                                @if (_mm.Game.Team1 != null && _mm.Game.Team1.Count > i)
-                                {
-                                    <td>@_mm.Game.Team1[i].Name</td>
+                            @for (int i = 0; i < 3; i++)
+                            {
+                                <tr>
+                                    <td>Player @(i + 1)</td>
+                                    @if (_mm.Game.Team1 != null && _mm.Game.Team1.Count > i)
+                                    {
+                                        <td>@_mm.Game.Team1[i].Name</td>
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                    }
+                                    <td></td>
+                                </tr>
+                            }
                         }
                         else
-                        {
-                                    <td></td>
-                        }
-                                <td></td>
-                            </tr>
-                        }
-                        } else
                         {
                             @for (int i = 0; i < _mm.MMGameReport[repid].Team1.Count(); i++)
                             {
@@ -203,12 +239,13 @@ else
                                 if (diff > 0)
                                 {
                                     color = DSdata.color_diff2;
-                                } else if (diff < 0)
+                                }
+                                else if (diff < 0)
                                 {
                                     color = DSdata.color_diff1;
                                 }
                                 <tr>
-                                    <td>Player @(i+1)</td>
+                                    <td>Player @(i + 1)</td>
                                     <td>@plf.Name</td>
                                     <td>@Math.Round(plf.EXP, 2) <font color="@color">@diff</font></td>
                                 </tr>
@@ -247,7 +284,7 @@ else
                             {
                                 var plr = _mm.MMGameReport[repid].Team2[i];
                                 var plf = _mm.MMGameReady[repid].Players().Where(x => x.Name == plr.Name).FirstOrDefault();
-                                
+
                                 var color = DSdata.color_null;
                                 var diff = Math.Round(plf.EXP - plr.EXP, 2);
                                 if (diff > 0)
@@ -306,46 +343,46 @@ else
     <br />
     @if (_mm.GAMEFOUND == true)
     {
-<div class="mb-2">
-    <button type="button" class="btn btn-success mt-1 mr-2" disabled="@isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
-    <button type="button" class="btn btn-danger btn-sm mt-1 mr-2" disabled="@isDeclinedDisabled" @onclick="@Declinegame">decline</button>
-    <div class="row mt-2 mb-2">
-        @if (_mm.Game != null)
-        {
-        @foreach (var pl in _mm.Game.Players())
-        {
-            <div class="col-auto">
-                @if (pl.Accepted == true)
+        <div class="mb-2">
+            <button type="button" class="btn btn-success mt-1 mr-2" disabled="@isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
+            <button type="button" class="btn btn-danger btn-sm mt-1 mr-2" disabled="@isDeclinedDisabled" @onclick="@Declinegame">decline</button>
+            <div class="row mt-2 mb-2">
+                @if (_mm.Game != null)
                 {
-                <h4><span class="badge badge-success" style="min-width: 55px;">@pl.Name</span></h4>
-        }
-        else
-        {
-            <h4><span class="badge badge-info">@pl.Name</span></h4>
-        }
+                    @foreach (var pl in _mm.Game.Players())
+                    {
+                        <div class="col-auto">
+                            @if (pl.Accepted == true)
+                            {
+                                <h4><span class="badge badge-success" style="min-width: 55px;">@pl.Name</span></h4>
+                            }
+                            else
+                            {
+                                <h4><span class="badge badge-info">@pl.Name</span></h4>
+                            }
+                        </div>
+                    }
+                }
             </div>
-        }
-        }
-    </div>
-    <div class="jumbotron w-75">
-        <h5>Game Found!</h5>
-        <div class="ml-2" id="div_progbargf">
-            <div class="progress">
-                <div class="progress-bar progress-bar-striped" role="progressbar"
-                     style="width: @((int)_mm.Done)%" aria-valuenow=@_mm.Done
-                     aria-valuemin="0" aria-valuemax="100">
-                </div>
-            </div>
+            <div class="jumbotron w-75">
+                <h5>Game Found!</h5>
+                <div class="ml-2" id="div_progbargf">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped" role="progressbar"
+                             style="width: @((int)_mm.Done)%" aria-valuenow=@_mm.Done
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
 
-        </div>
-        @if (_mm.ACCEPTED == true)
-        {
-            <div>
-                TY! Waiting for the other players to accept ..
+                </div>
+                @if (_mm.ACCEPTED == true)
+                {
+                    <div>
+                        TY! Waiting for the other players to accept ..
+                    </div>
+                }
             </div>
-        }
-    </div>
-</div>
+        </div>
     }
     <div class="jumbotron w-75">
         @_mm.Info
@@ -374,36 +411,80 @@ else
     int repid = 0;
     int dd = 0;
     bool RepSelDisabled = true;
-    bool MMcredential = false;
-    string Playername = "";
+    UserConfig _conf = new UserConfig();
+    string temp_Playername;
+    bool Failed = false;
+    bool Saved = false;
+    string Error = "";
 
-    protected override void OnInit()
+    protected override async Task OnInitAsync()
     {
-        if (_mm.seplayer != null)
-        {
-            seplayer = _mm.seplayer;
-        }
-        seplayer.Name = Playername;
+        var authState = await _auth.GetAuthenticationStateAsync();
+        var user = authState.User;
 
+        if (user.Identity.IsAuthenticated)
+        {
+            Console.WriteLine($"{user.Identity.Name} is authenticated.");
+            if (_startUp.Conf.ContainsKey(user.Identity.Name))
+            {
+
+            }
+            else
+            {
+                _startUp.Conf.Add(user.Identity.Name, new UserConfig(user.Identity.Name));
+            }
+            _conf = _startUp.Conf[user.Identity.Name];
+        }
+        else
+        {
+            _conf = new UserConfig("noAuth");
+        }
+
+    }
+
+    void Save()
+    {
+        if (temp_Playername.Length <= 2)
+        {
+            Failed = true;
+            Error = "Not a valid Starcraft2 playername.";
+            return;
+        }
+        if (_startUp.Players.Contains(temp_Playername))
+        {
+            Failed = true;
+            Error = "Player already used. Please login to use this ID.";
+            return;
+        }
+
+        Failed = false;
+        Saved = true;
+        _conf.Player = temp_Playername;
+        _startUp.Save();
     }
 
     void Findgame()
     {
         _mm.Reset();
-        _mm.Info += " Findgame with playername " + Playername;
+        _mm.Info += " Findgame with playername " + _conf.Player;
         repid = 0;
         RepSelDisabled = true;
         isFindDisabled = true;
         isDeclinedDisabled = false;
         isDeclinedDisabled = false;
-        seplayer.Name = Playername;
-        Task.Run(() => { _mm.FindGame(seplayer);});
+        seplayer.Name = _conf.Player;
+        _conf.Mode1 = seplayer.Mode;
+        _conf.Mode2 = seplayer.Mode2;
+        _conf.Server = seplayer.Server;
+        Task.Run(() => { _mm.FindGame(seplayer); });
         Update();
+        _startUp.Save();
     }
 
     void Update()
     {
-        Task.Run(() => {
+        Task.Run(() =>
+        {
             Thread.Sleep(3000);
             while (_mm.SEARCHING == true)
             {

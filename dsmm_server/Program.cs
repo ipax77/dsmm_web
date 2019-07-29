@@ -13,6 +13,9 @@ namespace dsmm_server
 {
     public class Program
     {
+        public static string workdir = "/data";
+        public static string myConfig = workdir + "/config.json";
+
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
@@ -20,6 +23,12 @@ namespace dsmm_server
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.SetBasePath(workdir);
+                    config.AddJsonFile(
+                        "config.json", optional: true, reloadOnChange: false);
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();

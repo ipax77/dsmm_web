@@ -15,6 +15,8 @@ using Microsoft.Extensions.Hosting;
 using dsmm_server.Areas.Identity;
 using dsmm_server.Data;
 using dsweb_electron6.Data;
+using Blazor.FileReader;
+using Microsoft.AspNetCore.Http;
 
 namespace dsmm_server
 {
@@ -33,18 +35,33 @@ namespace dsmm_server
         {
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                    "Server=(localdb)\\mssqllocaldb;Database=aspnet-dsmm_server-B03DA1A3-6841-42DD-B117-EA9441BBEE79;Trusted_Connection=True;MultipleActiveResultSets=true"));
             services.AddDefaultIdentity<IdentityUser>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddRazorPages();
             services.AddServerSideBlazor();
+            services.AddFileReaderService(options => options.InitializeOnFirstCall = true);
             services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider<IdentityUser>>();
+            services.AddSingleton<StartUp>();
             services.AddScoped<MMservice>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            string basePath = Environment.GetEnvironmentVariable("ASPNETCORE_BASEPATH");
+            if (!string.IsNullOrEmpty(basePath))
+            {
+                app.Use((context, next) =>
+                {
+                    context.Request.PathBase = new PathString(basePath);
+                    if (context.Request.Path.StartsWithSegments(basePath, out var remainder))
+                    {
+                        context.Request.Path = remainder;
+                    }
+                    return next();
+                });
+            }
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -57,7 +74,7 @@ namespace dsmm_server
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
