@@ -17,6 +17,7 @@ using dsmm_server.Data;
 using dsweb_electron6.Data;
 using Blazor.FileReader;
 using Microsoft.AspNetCore.Http;
+using MySql.Data;
 
 namespace dsmm_server
 {
@@ -34,8 +35,10 @@ namespace dsmm_server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    "Server=(localdb)\\mssqllocaldb;Database=aspnet-dsmm_server-B03DA1A3-6841-42DD-B117-EA9441BBEE79;Trusted_Connection=True;MultipleActiveResultSets=true"));
+                options.UseSqlite(
+                    //Configuration.GetConnectionString("DefaultConnection")));
+                    //"Server=(localdb)\\mssqllocaldb;Database=aspnet-dsmm_server-B03DA1A3-6841-42DD-B117-EA9441BBEE79;Trusted_Connection=True;MultipleActiveResultSets=true"));
+                "DataSource=/data/app.db"));
             services.AddDefaultIdentity<IdentityUser>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddRazorPages();
