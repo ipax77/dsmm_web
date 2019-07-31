@@ -30,6 +30,8 @@ namespace dsweb_electron6.Data
         public int MMID { get; set; } = 0;
         public string Server { get; set; } = "NA";
         public MMgame Game { get; set; } = new MMgame();
+        public MMgame preGame { get; set; } = new MMgame();
+        public int RepID { get; set; } = 0;
 
         public ConcurrentDictionary<string, bool> Lobby = new ConcurrentDictionary<string, bool>();
 
@@ -76,6 +78,8 @@ namespace dsweb_electron6.Data
         public void FindGame(SEplayer _seplayer)
         {
             SEARCHING = true;
+            Game = new MMgame();
+            preGame = new MMgame();
             seplayer = _seplayer;
             Info = "Connecting ...";
             Serverbadge = "badge-success";
@@ -97,8 +101,8 @@ namespace dsweb_electron6.Data
             SEARCHING = true;
             while (SEARCHING == true)
             {
-                Thread.Sleep(1000);
-                _time = _time.Add(TimeSpan.FromSeconds(1));
+                Thread.Sleep(2000);
+                _time = _time.Add(TimeSpan.FromSeconds(2));
                 if (_time.TotalMinutes > 1 && AllowRandoms == false)
                 {
                     AllowRandoms = true;
@@ -159,10 +163,10 @@ namespace dsweb_electron6.Data
 
             while (ALL_ACCEPTED == false && ALL_DECLINED == false)
             {
-                Thread.Sleep(250);
+                Thread.Sleep(500);
                 Info = "Waiting for all players to accept ...";
                 game = DSrest.Status(id);
-                Game = game;
+                preGame = game;
                 if (game == null)
                 {
                     //Console.WriteLine("game = null {0} => ({1})", seplayer.Name, id);
@@ -170,9 +174,9 @@ namespace dsweb_electron6.Data
                     {
                         ALL_DECLINED = true;
                         Info = "# Game not found :( - Searching again ..";
-                        GAMEFOUND = false;
                         Thread.Sleep(2500);
-                        Searching();
+                        GAMEFOUND = false;
+                        Task.Run(() => { Searching(); });
                         return;
                     }
 
@@ -194,9 +198,9 @@ namespace dsweb_electron6.Data
                         ALL_DECLINED = true;
 
                         Info = "# Someone declined :( - Searching again ..";
-                        GAMEFOUND = false;
                         Thread.Sleep(2500);
-                        Searching();
+                        GAMEFOUND = false;
+                        Task.Run(() => { Searching(); });
                         return;
                     }
                 }
@@ -236,8 +240,9 @@ namespace dsweb_electron6.Data
                     ALL_DECLINED = true;
                 }
 
-                Thread.Sleep(250);
+                Thread.Sleep(500);
                 _time = _time.Add(TimeSpan.FromSeconds(0.5));
+                Done += 1.428571429;
                 Done += 1.428571429;
             }
         }
@@ -287,10 +292,10 @@ namespace dsweb_electron6.Data
             }
         }
 
-        public void FindValidReps()
+        public async Task FindValidReps(List<dsreplay> replays)
         {
+            /**
             //List<dsreplay> replays = _dsData.Replays.OrderByDescending(o => o.GAMETIME).Take(50).ToList();
-            List<dsreplay> replays = new List<dsreplay>();
             Dictionary<int, Dictionary<dsreplay, int>> Validrep = new Dictionary<int, Dictionary<dsreplay, int>>();
             int valid = 0;
             foreach (int id in MMGameReady.Keys)
@@ -347,16 +352,25 @@ namespace dsweb_electron6.Data
                 if (reprep.PLAYERS.Count > 0) DSGameReport.TryAdd(id, reprep);
             }
 
-            foreach (int id in DSGameReport.Keys)
-            {
-                if (DSGameReport[id].REPORTED > 0) continue;
-                MMGameReport[id] = DSrest.Report(DSGameReport[id], id);
-                if (MMGameReport[id] != null) DSGameReport[id].REPORTED = 1;
-                else MMGameReport[id] = new MMgame();
-               
-            }
-
+            await Task.Run(() => { 
+                foreach (int id in DSGameReport.Keys)
+                {
+                    if (DSGameReport[id].REPORTED > 0) continue;
+                    MMGameReport[id] = DSrest.Report(DSGameReport[id], id);
+                    if (MMGameReport[id] != null) DSGameReport[id].REPORTED = 1;
+                    else MMGameReport[id] = new MMgame();
+                    RepID = id;
+                }
+            });
+            **/
+            Game.ID = replays.FirstOrDefault().ID;
+            MMGameReport[replays.FirstOrDefault().ID] = DSrest.Report(replays.FirstOrDefault(), replays.FirstOrDefault().ID);
+            Game.Team1 = MMGameReport[replays.FirstOrDefault().ID].Team1;
+            Game.Team2 = MMGameReport[replays.FirstOrDefault().ID].Team2;
+            DSGameReport[replays.FirstOrDefault().ID] = replays.FirstOrDefault();
+            MMGameReady[replays.FirstOrDefault().ID] = Game;
             Info = DSGameReport.Keys.Where(x => DSGameReport[x].ID > 0).Count() + " valid replay(s) found.";
+            RepID = replays.FirstOrDefault().ID;
         }
     }
 }

@@ -4,20 +4,15 @@
 @using dsmm_server.Data;
 @using dsmm_server.Models;
 @using System.Threading;
-
+@using System.ComponentModel;
 @inject MMservice _mm
 @inject AuthenticationStateProvider _auth
 @inject StartUp _startUp
+@inject ScanStateChange _state
+@implements IDisposable
 
 <h3>Matchmaking</h3>
 <br />
-<AuthorizeView>
-<NotAuthorized>
-    <h5>You are not signed in. You can save your settings by creating an account.</h5>
-    <br />
-</NotAuthorized>
-</AuthorizeView>
-
 @if (_conf.Credential == false)
 {
     <div class="row">
@@ -155,6 +150,12 @@ else
         </div>
     </div>
     <br />
+    <div>
+        @if (ReportIsClicked == true)
+        {
+            <Report _mm="_mm" />
+        }
+    </div>
     <div class="container-fluid">
         <div class="row">
             <div class="col-sm-auto">
@@ -186,7 +187,7 @@ else
                             <label for="reports" class="control-label">
                                 Reports:
                             </label>
-                            <select id="reports" class="form-control" disabled="@RepSelDisabled" @bind="@repid">
+                            <select id="reports" class="form-control" disabled="@RepSelDisabled" @bind="@_mm.RepID">
                                 @for (int i = 0; i < _mm.DSGameReport.Keys.Count(); i++)
                                 {
                                     @if (i == _mm.DSGameReport.Keys.Count() - 1)
@@ -210,7 +211,7 @@ else
                         <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
                     </thead>
                     <tbody>
-                        @if (repid == 0)
+                        @if (_mm.RepID == 0)
                         {
                             @for (int i = 0; i < 3; i++)
                             {
@@ -230,10 +231,10 @@ else
                         }
                         else
                         {
-                            @for (int i = 0; i < _mm.MMGameReport[repid].Team1.Count(); i++)
+                            @for (int i = 0; i < _mm.MMGameReport[_mm.RepID].Team1.Count(); i++)
                             {
-                                var plf = _mm.MMGameReady[repid].Team1[i];
-                                var plr = _mm.MMGameReport[repid].Team1[i];
+                                var plf = _mm.MMGameReady[_mm.RepID].Team1[i];
+                                var plr = _mm.MMGameReport[_mm.RepID].Team1[i];
                                 var color = DSdata.color_null;
                                 var diff = Math.Round(plf.EXP - plr.EXP, 2);
                                 if (diff > 0)
@@ -261,7 +262,7 @@ else
                         <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
                     </thead>
                     <tbody>
-                        @if (repid == 0)
+                        @if (_mm.RepID == 0)
                         {
                             @for (int i = 0; i < 3; i++)
                             {
@@ -280,10 +281,10 @@ else
                         }
                         else
                         {
-                            @for (int i = 0; i < _mm.MMGameReport[repid].Team2.Count(); i++)
+                            @for (int i = 0; i < _mm.MMGameReport[_mm.RepID].Team2.Count(); i++)
                             {
-                                var plr = _mm.MMGameReport[repid].Team2[i];
-                                var plf = _mm.MMGameReady[repid].Players().Where(x => x.Name == plr.Name).FirstOrDefault();
+                                var plr = _mm.MMGameReport[_mm.RepID].Team2[i];
+                                var plf = _mm.MMGameReady[_mm.RepID].Players().Where(x => x.Name == plr.Name).FirstOrDefault();
 
                                 var color = DSdata.color_null;
                                 var diff = Math.Round(plf.EXP - plr.EXP, 2);
@@ -347,9 +348,9 @@ else
             <button type="button" class="btn btn-success mt-1 mr-2" disabled="@isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
             <button type="button" class="btn btn-danger btn-sm mt-1 mr-2" disabled="@isDeclinedDisabled" @onclick="@Declinegame">decline</button>
             <div class="row mt-2 mb-2">
-                @if (_mm.Game != null)
+                @if (_mm.preGame != null)
                 {
-                    @foreach (var pl in _mm.Game.Players())
+                    @foreach (var pl in _mm.preGame.Players())
                     {
                         <div class="col-auto">
                             @if (pl.Accepted == true)
@@ -388,10 +389,10 @@ else
         @_mm.Info
     </div>
     <br />
-    @if (repid > 0)
+    @if (_mm.RepID > 0 && _mm.DSGameReport.ContainsKey(_mm.RepID))
     {
         <div class="container-fluid">
-            <Game replay="@_mm.DSGameReport[repid]" />
+            <Game replay="@_mm.DSGameReport[_mm.RepID]" _conf="_conf" />
         </div>
     }
 }
@@ -408,7 +409,6 @@ else
     bool MMDeleted = false;
     double MMDel = 3;
     private string GameClass = "colapsed";
-    int repid = 0;
     int dd = 0;
     bool RepSelDisabled = true;
     UserConfig _conf = new UserConfig();
@@ -416,6 +416,8 @@ else
     bool Failed = false;
     bool Saved = false;
     string Error = "";
+    bool UpdateRunning = false;
+    bool ReportIsClicked = false;
 
     protected override async Task OnInitAsync()
     {
@@ -440,6 +442,12 @@ else
             _conf = new UserConfig("noAuth");
         }
 
+        _state.PropertyChanged += StateUpdate;
+    }
+
+    private void StateUpdate(object sender, PropertyChangedEventArgs e)
+    {
+        Invoke(() => StateHasChanged());
     }
 
     void Save()
@@ -467,15 +475,18 @@ else
     {
         _mm.Reset();
         _mm.Info += " Findgame with playername " + _conf.Player;
-        repid = 0;
+        _mm.RepID = 0;
         RepSelDisabled = true;
+        ReportIsClicked = false;
         isFindDisabled = true;
-        isDeclinedDisabled = false;
+        isAcceptDisabled = false;
         isDeclinedDisabled = false;
         seplayer.Name = _conf.Player;
         _conf.Mode1 = seplayer.Mode;
         _conf.Mode2 = seplayer.Mode2;
         _conf.Server = seplayer.Server;
+        _mm.SEARCHING = false;
+        _mm.GAMEFOUND = false;
         Task.Run(() => { _mm.FindGame(seplayer); });
         Update();
         _startUp.Save();
@@ -483,10 +494,20 @@ else
 
     void Update()
     {
+        UpdateRunning = true;
         Task.Run(() =>
         {
             Thread.Sleep(3000);
             while (_mm.SEARCHING == true)
+            {
+                Thread.Sleep(2000);
+                Invoke(() =>
+                {
+                    StateHasChanged();
+                });
+            }
+            UpdateRunning = false;
+            while (_mm.GAMEFOUND == true)
             {
                 Thread.Sleep(1000);
                 Invoke(() =>
@@ -495,14 +516,14 @@ else
                 });
             }
 
-            while (_mm.GAMEFOUND == true)
+        // someone declined - searching again
+        if (_mm.SEARCHING == true && UpdateRunning == false)
             {
-                Thread.Sleep(500);
-                Invoke(() =>
-                {
-                    StateHasChanged();
-                });
+                isAcceptDisabled = false;
+                isDeclinedDisabled = false;
+                Update();
             }
+
         });
     }
 
@@ -515,12 +536,8 @@ else
     {
         isFindDisabled = false;
         RepSelDisabled = false;
-        _mm.FindValidReps();
-
-        if (_mm.DSGameReport.Count > 0)
-        {
-            repid = _mm.DSGameReport.Keys.OrderByDescending(o => o).First();
-        }
+        //_mm.FindValidReps();
+        ReportIsClicked = !ReportIsClicked;
     }
 
     void Exitfind()
@@ -554,6 +571,15 @@ else
             Info = "Game declined. :(";
 
 
+        }
+    }
+
+    public void Dispose()
+    {
+        _state.PropertyChanged -= StateUpdate;
+        if (seplayer != null && seplayer.Name != null && seplayer.Name.Length >= 2)
+        {
+            _mm.Exit(seplayer.Name);
         }
     }
 

@@ -8,6 +8,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using dsmm_server.Models;
 using System.Threading;
+using System.Collections.Concurrent;
+using dsweb_electron6.Models;
 
 namespace dsmm_server.Data
 {
@@ -17,6 +19,8 @@ namespace dsmm_server.Data
         public static string VERSION = "v0.1";
         public Dictionary<string, UserConfig> Conf = new Dictionary<string, UserConfig>();
         public HashSet<string> Players = new HashSet<string>();
+        public ConcurrentDictionary<int, dsreplay> replays = new ConcurrentDictionary<int, dsreplay>();
+        public HashSet<string> repHash = new HashSet<string>();
 
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
 
@@ -30,6 +34,24 @@ namespace dsmm_server.Data
 
             foreach (string name in Conf.Keys)
                 Players.Add(Conf[name].Player);
+
+            if (!File.Exists(Program.myJson_file))
+                File.Create(Program.myJson_file).Dispose();
+
+            foreach (var line in File.ReadAllLines(Program.myJson_file))
+            {
+                dsreplay rep = null;
+                try
+                {
+                    rep = JsonSerializer.Deserialize<dsreplay>(line);
+                } catch { }
+                if (rep != null)
+                {
+                    rep.Init();
+                    repHash.Add(rep.GenHash());
+                    replays[rep.ID] = rep;
+                }
+            }
         }
 
         public void Save()

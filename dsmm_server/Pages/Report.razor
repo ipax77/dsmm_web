@@ -1,28 +1,237 @@
 ﻿@page "/report"
 @using System.IO;
 @using Blazor.FileReader;
+@using s2decode;
+@using dsweb_electron6.Models;
+@using dsweb_electron6.Data;
+@using dsmm_server.Data;
+@using System.Collections.Concurrent;
+@using System.Threading;
+@inject S2decode _s2dec
+@inject ScanStateChange _scan
+@inject StartUp  _startUp
+@inject ScanStateChange _state
 @inject IFileReaderService fileReaderService;
 
 <h3>Report</h3>
+<style>
+    .droptarget {
+        display: block;
+        padding: 20px;
+        margin-bottom: 10px;
+        border: 1px dashed black;
+        border-radius: 5px;
+    }
 
+    .droptarget-drag {
+        border-color: orangered;
+        font-weight: bold;
+    }
+</style>
+<input class="form-control-sm" type="number" @bind="@_mm.Game.ID" />
 <input class="form-control-file w-50" type="file" @ref="@inputTypeFileElement" />
-<button class="btn btn-primary mt-2" @onclick="@ReadFile">Upload</button>
-
+<br />
+<div class="@DropClass"
+     @ref="@dropTargetElement"
+     @ondrop="@OnDrop"
+     @ondragenter="@(e => this.DropClass += " droptarget-drag")"
+     @ondragleave="@(e => this.DropClass = _dropClass)">
+    Drop Replay here or select it.
+    @foreach (var fileInfo in FileList)
+    {
+        <br />@fileInfo.Name
+    }
+</div>
+<button @onclick="@ReadFile" class="btn btn-primary">Upload</button>
+<button @onclick="@ClearFile" class="btn btn-primary">Clear</button>
+<br />
+<textarea style="max-width: 100%; overflow-y:scroll; " cols="40" rows="5">@Output</textarea>
 @code {
+    [Parameter]
+    MMservice _mm { get; set; }
+
     ElementRef inputTypeFileElement;
+    ElementRef dropTargetElement;
+    IFileReaderRef dropReference;
     byte[] buffer;
 
+    const string _dropClass = "droptarget";
+    string DropClass { get; set; } = _dropClass;
+    string Output { get; set; }
+    List<IFileInfo> FileList { get; } = new List<IFileInfo>();
+
+    protected override async Task OnAfterRenderAsync()
+    {
+        dropReference = fileReaderService.CreateReference(dropTargetElement);
+        await dropReference.RegisterDropEventsAsync();
+    }
+
+    public async Task ClearFile()
+    {
+        await dropReference.ClearValue();
+        await this.RefreshFileList();
+    }
+
+    public async Task OnDrop(UIDragEventArgs e)
+    {
+        Output += "Dropped a file.";
+        this.DropClass = _dropClass;
+        this.StateHasChanged();
+        await this.RefreshFileList();
+    }
+
+    private async Task RefreshFileList()
+    {
+        this.FileList.Clear();
+        foreach (var file in await dropReference.EnumerateFilesAsync())
+        {
+            var fileInfo = await file.ReadFileInfoAsync();
+            this.FileList.Add(fileInfo);
+        }
+        this.StateHasChanged();
+    }
 
     public async Task ReadFile()
     {
+        Output = string.Empty;
+        this.StateHasChanged();
+
+        string upRep = Program.replaydir + "/" + _mm.Game.ID + ".SC2Replay";
+        if (File.Exists(upRep))
+        {
+            if (_startUp.replays.ContainsKey(_mm.Game.ID))
+            {
+                dsreplay rep = _startUp.replays[_mm.Game.ID];
+                List<dsreplay> replays = new List<dsreplay>();
+                replays.Add(rep);
+                Output += "Reporting replay .." + Environment.NewLine;
+                await _mm.FindValidReps(replays);
+                StateHasChanged();
+                _state.Update = !_state.Update;
+            }
+            return;
+        }
+        else
+        {
+            File.Create(upRep).Dispose();
+        }
+
+        int i = 0;
+        bool valid = true;
+        ConcurrentDictionary<int, byte[]> fileBytes = new ConcurrentDictionary<int, byte[]>();
+
         foreach (var file in await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync())
         {
-            // Read into buffer and act (uses less memory)
-            using(Stream stream = await file.OpenReadAsync()) {
-                // Do (async) stuff with stream...
-                await stream.ReadAsync(buffer, 0, (int)stream.Length);
+            i++;
+            if (i > 1)
+            {
+                valid = false;
+                Output += "Only one file upload is allowed.";
+                break;
             }
+            (valid, fileBytes) = await GetFile(file);
+        }
+        foreach (var file in await dropReference.EnumerateFilesAsync())
+        {
+            i++;
+            if (i > 1)
+            {
+                valid = false;
+                Output += "Only one file upload is allowed.";
+                break;
+            }
+            (valid, fileBytes) = await GetFile(file);
+        }
 
+        if (valid == true && _mm != null)
+        {
+
+            await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
+            Output += "Decoding replay..." + Environment.NewLine;
+            await Decode.Doit(_scan, _s2dec, upRep, _mm.Game.ID - 2);
+            if (_startUp.replays.ContainsKey(_mm.Game.ID))
+            {
+                dsreplay rep = _startUp.replays[_mm.Game.ID];
+                List<dsreplay> replays = new List<dsreplay>();
+                replays.Add(rep);
+                Output += "Reporting replay .." + Environment.NewLine;
+                await _mm.FindValidReps(replays);
+                StateHasChanged();
+                _state.Update = !_state.Update;
+            }
+        }
+    }
+
+    async Task<(bool, ConcurrentDictionary<int, byte[]>)> GetFile(IFileReference file)
+    {
+        ConcurrentDictionary<int, byte[]> fileBytes = new ConcurrentDictionary<int, byte[]>();
+        bool valid = true;
+        var nl = Environment.NewLine;
+        var fileInfo = await file.ReadFileInfoAsync();
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Name)}: {fileInfo.Name}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Size)}: {fileInfo.Size}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Type)}: {fileInfo.Type}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.LastModifiedDate)}: {fileInfo.LastModifiedDate?.ToString() ?? "(N/A)"}{nl}";
+        Output += $"Reading file...";
+        this.StateHasChanged();
+
+        // 10 MB
+        if (fileInfo.Size > 10485760)
+        {
+            Output += "File size exceeds limit.";
+            valid = false;
+        }
+        TimeSpan t = new TimeSpan();
+        t = DateTime.Now - Convert.ToDateTime(fileInfo.LastModifiedDate);
+        t = t.Duration();
+        if (t.Days > 1)
+        {
+            Output += "Not a valid replay.";
+            valid = false;
+        }
+
+
+        using (var fs = await file.OpenReadAsync())
+        {
+            var bufferSize = 4096;
+            var buffer = new byte[bufferSize];
+            int count;
+            int j = 0;
+            while ((count = await fs.ReadAsync(buffer, 0, buffer.Length)) != 0)
+            {
+
+                fileBytes[j] = buffer.ToArray();
+                Output += $"Read {count} bytes. {fs.Position} / {fs.Length}{nl}";
+
+                if (j == 0)
+                {
+                    if (buffer[0] != 77 || buffer[1] != 80 || buffer[2] != 81)
+                    {
+                        Output += "Not a valid replay.";
+                        valid = false;
+                        break;
+                    }
+
+                }
+                Interlocked.Increment(ref j);
+                this.StateHasChanged();
+            }
+            Output += $"Done reading file {fileInfo.Name}{nl}.";
+        }
+        this.StateHasChanged();
+        return (valid, fileBytes);
+    }
+
+
+    public static byte[] Concat(params byte[][] arrays)
+    {
+        using (var mem = new MemoryStream(arrays.Sum(a => a.Length)))
+        {
+            foreach (var array in arrays)
+            {
+                mem.Write(array, 0, array.Length);
+            }
+            return mem.ToArray();
         }
     }
 }

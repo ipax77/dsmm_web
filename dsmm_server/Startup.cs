@@ -17,7 +17,8 @@ using dsmm_server.Data;
 using dsweb_electron6.Data;
 using Blazor.FileReader;
 using Microsoft.AspNetCore.Http;
-using MySql.Data;
+using s2decode;
+using dsweb_electron6.Models;
 
 namespace dsmm_server
 {
@@ -46,7 +47,10 @@ namespace dsmm_server
             services.AddFileReaderService(options => options.InitializeOnFirstCall = true);
             services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider<IdentityUser>>();
             services.AddSingleton<StartUp>();
+            services.AddScoped<ScanStateChange>();
+            services.AddSingleton<S2decode>();
             services.AddScoped<MMservice>();
+            services.AddScoped<DSdyn>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
