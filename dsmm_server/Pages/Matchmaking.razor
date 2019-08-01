@@ -345,8 +345,8 @@ else
     <br />
     @if (_mm.GAMEFOUND == true)
     {
-        <audio controls>
-            <source src="~/audio/ready.wav" type="audio/mpeg">
+        <audio controls autoplay>
+            <source src="audio/ready.wav" type="audio/mpeg">
         </audio>
         <div class="mb-2">
             <button type="button" class="btn btn-success mt-1 mr-2" disabled="@isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
