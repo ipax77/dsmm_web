@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace dsmm_server
 {
@@ -35,6 +36,13 @@ namespace dsmm_server
                     config.SetBasePath(workdir);
                     config.AddJsonFile(
                         "config.json", optional: true, reloadOnChange: false);
+                })
+                .ConfigureLogging((hostingContext, logging) =>
+                {
+                    logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
+                    logging.AddSerilog(new LoggerConfiguration().WriteTo.File("/data/serilog.txt").CreateLogger());
+                    logging.AddConsole();
+                    logging.AddDebug();
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {

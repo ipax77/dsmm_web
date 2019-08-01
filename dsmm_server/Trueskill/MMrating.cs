@@ -1,0 +1,193 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using DSmm.Models;
+using Moserware.Skills;
+
+namespace DSmm.Trueskill
+{
+    public static class MMrating
+    {
+        public static MMgame RateGame(List<MMplayer> t1, List<MMplayer> t2)
+        {
+            int i = 0;
+            var team1 = new Team();
+            var team2 = new Team();
+
+            foreach (var pl in t1)
+            {
+                team1.AddPlayer(new Player(i), new Rating(pl.MU, pl.SIGMA));
+                pl.Games++;
+                i++;
+            }
+            foreach (var pl in t2)
+            {
+                team2.AddPlayer(new Player(i), new Rating(pl.MU, pl.SIGMA));
+                pl.Games++;
+                i++;
+            }
+
+            var gameInfo = GameInfo.DefaultGameInfo;
+            var teams = Teams.Concat(team1, team2);
+            var newRatingsWinLoseExpected = TrueSkillCalculator.CalculateNewRatings(gameInfo, teams, 1, 2);
+
+            MMgame game = new MMgame();
+
+            i = 0;
+            foreach (var pl in team1.AsDictionary().Keys)
+            {
+                var res = newRatingsWinLoseExpected[pl];
+                t1[i].EXP = res.ConservativeRating;
+                t1[i].MU = res.Mean;
+                t1[i].SIGMA = res.StandardDeviation;
+                game.Team1.Add(new BasePlayer(t1[i]));
+                i++;
+            }
+            i = 0;
+            foreach (var pl in team2.AsDictionary().Keys)
+            {
+                var res = newRatingsWinLoseExpected[pl];
+                t2[i].EXP = res.ConservativeRating;
+                t2[i].MU = res.Mean;
+                t2[i].SIGMA = res.StandardDeviation;
+                game.Team2.Add(new BasePlayer(t2[i]));
+                i++;
+            }
+
+            return game;
+        }
+
+        public static async Task<MMgame> GenMatch(List<MMplayer> qplayers, int size)
+        {
+            List<MMplayer> result = new List<MMplayer>();
+            int c = 0;
+
+            List<MMplayer> players = new List<MMplayer>();
+            players = qplayers.Where(x => x.Game == null).ToList();
+
+            if (players.Count < size) return null;
+
+            double bestquality = 0;
+            return await Task.Run(() => { 
+                while (true)
+                {
+                    c++;
+                    int i = 0;
+                    var team1 = new Team();
+                    var team2 = new Team();
+
+                    var rnd = new Random();
+                    List<MMplayer> thisresult = new List<MMplayer>(players.Select(x => new { value = x, order = rnd.Next() })
+                                .OrderBy(x => x.order).Select(x => x.value).Take(size).ToList());
+
+
+                    foreach (var pl in thisresult)
+                    {
+                        if (i < result.Count() / 2)
+                            team1.AddPlayer(new Player(i), new Rating(pl.MU, pl.SIGMA));
+                        else
+                            team2.AddPlayer(new Player(i), new Rating(pl.MU, pl.SIGMA));
+                        i++;
+                    }
+
+                    var gameInfo = GameInfo.DefaultGameInfo;
+                    var teams = Teams.Concat(team1, team2);
+
+                    double thisquality = TrueSkillCalculator.CalculateMatchQuality(gameInfo, teams);
+                    
+                    if (thisquality > bestquality)
+                    {
+                        bestquality = thisquality;
+                        result = new List<MMplayer>(thisresult);
+                    }
+
+                    if (c > 10 && bestquality > 0.5) break;
+                    if (c > 50 && bestquality > 0.4) break;
+                    if (c > 200) break;
+                }
+
+                MMgame game = new MMgame();
+                game.Quality = bestquality;
+                game.ID = 1;
+                int j = 0;
+                foreach (var pl in result)
+                {
+                    if (j < result.Count() / 2)
+                        game.Team1.Add(new BasePlayer(pl));
+                    else
+                        game.Team2.Add(new BasePlayer(pl));
+                    j++;
+                }
+
+                return game;
+            });
+        }
+
+        private static void ThreeOnTwoTests()
+        {
+            // To make things interesting, here is a team of three people playing
+            // a team of two people.
+            // Initialize the players on the first team. Remember that the argument
+            // passed to the Player constructor can be anything. It's strictly there
+            // to help you uniquely identify people.
+            var player1 = new Player(1);
+            var player2 = new Player(2);
+            var player3 = new Player(3);
+            // Note the fluent-like API where you can add players to the Team and 
+            // specify the rating of each using their mean and standard deviation
+            // (for more information on these parameters, see the accompanying post
+            // http://www.moserware.com/2010/03/computing-your-skill.html )
+            var team1 = new Team()
+                        .AddPlayer(player1, new Rating(28, 7))
+                        .AddPlayer(player2, new Rating(27, 6))
+                        .AddPlayer(player3, new Rating(26, 5));
+            // Create players for the second team
+            var player4 = new Player(4);
+            var player5 = new Player(5);
+            var team2 = new Team()
+                        .AddPlayer(player4, new Rating(30, 4))
+                        .AddPlayer(player5, new Rating(31, 3));
+            // The default parameters are fine
+            var gameInfo = GameInfo.DefaultGameInfo;
+            // We only have two teams, combine the teams into one parameter
+            var teams = Teams.Concat(team1, team2);
+            // Specify that the outcome was a 1st and 2nd place
+            var newRatingsWinLoseExpected = TrueSkillCalculator.CalculateNewRatings(gameInfo, teams, 1, 2);
+            // Winners
+            AssertRating(28.658, 6.770, newRatingsWinLoseExpected[player1]);
+            AssertRating(27.484, 5.856, newRatingsWinLoseExpected[player2]);
+            AssertRating(26.336, 4.917, newRatingsWinLoseExpected[player3]);
+            // Losers
+            AssertRating(29.785, 3.958, newRatingsWinLoseExpected[player4]);
+            AssertRating(30.879, 2.983, newRatingsWinLoseExpected[player5]);
+            // For fun, let's see what would have happened if there was an "upset" and the better players lost
+            var newRatingsWinLoseUpset = TrueSkillCalculator.CalculateNewRatings(gameInfo, Teams.Concat(team1, team2), 2, 1);
+            // Winners
+            AssertRating(32.012, 3.877, newRatingsWinLoseUpset[player4]);
+            AssertRating(32.132, 2.949, newRatingsWinLoseUpset[player5]);
+            // Losers
+            AssertRating(21.840, 6.314, newRatingsWinLoseUpset[player1]);
+            AssertRating(22.474, 5.575, newRatingsWinLoseUpset[player2]);
+            AssertRating(22.857, 4.757, newRatingsWinLoseUpset[player3]);
+            // Note that we could have predicted this wasn't a very balanced game ahead of time because
+            // it had low match quality.
+            AssertMatchQuality(0.254, TrueSkillCalculator.CalculateMatchQuality(gameInfo, teams));
+        }
+
+        private static void AssertRating(double expectedMean, double expectedStandardDeviation, Rating actual)
+        {
+            const double ErrorTolerance = 0.085;
+            Debug.Assert(Math.Abs(expectedMean - actual.Mean) < ErrorTolerance);
+            Debug.Assert(Math.Abs(expectedStandardDeviation - actual.StandardDeviation) < ErrorTolerance);
+        }
+
+        private static void AssertMatchQuality(double expectedMatchQuality, double actualMatchQuality)
+        {
+            Debug.Assert(Math.Abs(expectedMatchQuality - actualMatchQuality) < 0.0005);
+        }
+
+    }
+}

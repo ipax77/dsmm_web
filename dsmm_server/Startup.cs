@@ -19,6 +19,11 @@ using Blazor.FileReader;
 using Microsoft.AspNetCore.Http;
 using s2decode;
 using dsweb_electron6.Models;
+using DSmm;
+using DSmm.Attributes;
+using DSmm.Middleware;
+using DSmm.Repositories;
+using Newtonsoft.Json.Serialization;
 
 namespace dsmm_server
 {
@@ -51,6 +56,12 @@ namespace dsmm_server
             services.AddSingleton<S2decode>();
             services.AddScoped<MMservice>();
             services.AddScoped<DSdyn>();
+
+            services.Configure<AppConfig>(Configuration);
+            services.AddSingleton<IDataRepository, DataRepository>();
+            services.AddSingleton<IMMrepository, MMrepository>();
+            services.AddScoped<AuthenticationFilterAttribute>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -80,7 +91,7 @@ namespace dsmm_server
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-
+            app.UseMiddleware<HttpExceptionMiddleware>();
             //app.UseHttpsRedirection();
             app.UseStaticFiles();
 
@@ -92,6 +103,9 @@ namespace dsmm_server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
             });

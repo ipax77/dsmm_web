@@ -8,6 +8,8 @@ using System.Collections.Concurrent;
 using NAudio.Wave;
 using System.Threading;
 using System.IO;
+using DSmm.Models;
+using DSmm.Repositories;
 
 namespace dsweb_electron6.Data
 {
@@ -44,8 +46,11 @@ namespace dsweb_electron6.Data
         public ConcurrentDictionary<int, MMgame> MMGameReport { get; set; } = new ConcurrentDictionary<int, MMgame>();
         public ConcurrentDictionary<int, dsreplay> DSGameReport { get; set; } = new ConcurrentDictionary<int, dsreplay>();
 
-        public MMservice()
+        IMMrepository _mmrep;
+
+        public MMservice(IMMrepository mmrep)
         {
+            _mmrep = mmrep;
             //var audioFile = new AudioFileReader(@"audio\ready.wav");
             //SP.Init(audioFile);
             //string workdir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -86,7 +91,8 @@ namespace dsweb_electron6.Data
             Serverinfo = "Online";
             Info += " LetmePlay ..";
             _time = TimeSpan.FromSeconds(1);
-            var result = DSrest.LetmePlay(seplayer);
+            //var result = DSrest.LetmePlay(seplayer);
+            var result = _mmrep.LetmePlay(seplayer).Result;
             if (result == null) Reset();
             else
             {
@@ -109,7 +115,8 @@ namespace dsweb_electron6.Data
                     RandomIsDisabled = "";
                     Info += " You can fill your lobby with randoms now if you want (check 'allow Randoms' top right)";
                 }
-                var res = DSrest.FindGame(seplayer.Name);
+                //var res = DSrest.FindGame(seplayer.Name);
+                var res = _mmrep.FindGame(seplayer.Name).Result;
                 if (res == null) Reset();
                 else
                 {
@@ -133,14 +140,16 @@ namespace dsweb_electron6.Data
         {
             ACCEPTED = true;
             //SP.Stop();
-            DSrest.Accept(seplayer.Name, MMID);
+            //DSrest.Accept(seplayer.Name, MMID);
+            _mmrep.Accept(seplayer.Name, MMID.ToString());
         }
 
         public void Declined()
         {
             DECLINED = true;
             //SP.Stop();
-            DSrest.Decline(seplayer.Name, MMID);
+            //DSrest.Decline(seplayer.Name, MMID);
+            _mmrep.Decline(seplayer.Name, MMID.ToString());
             Reset();
         }
 
@@ -165,7 +174,8 @@ namespace dsweb_electron6.Data
             {
                 Thread.Sleep(500);
                 Info = "Waiting for all players to accept ...";
-                game = DSrest.Status(id);
+                //game = DSrest.Status(id);
+                game = _mmrep.Status(id.ToString()).Result;
                 preGame = game;
                 if (game == null)
                 {
@@ -236,7 +246,8 @@ namespace dsweb_electron6.Data
                 {
                     Info = "We declined/timed out :(";
                     GAMEFOUND = false;
-                    DSrest.Decline(seplayer.Name, MMID);
+                    //DSrest.Decline(seplayer.Name, MMID);
+                    _mmrep.Decline(seplayer.Name, MMID.ToString());
                     ALL_DECLINED = true;
                 }
 
@@ -250,7 +261,8 @@ namespace dsweb_electron6.Data
         public void Exit(string name)
         {
             Reset();
-            DSrest.ExitQ(name);
+            //DSrest.ExitQ(name);
+            _mmrep.ExitQ(name);
         }
 
         public void GameReady(MMgame game)
@@ -267,7 +279,7 @@ namespace dsweb_electron6.Data
             int j = 0;
             int games = 0;
             string mmid = game.ID.ToString();
-            foreach (var pl in game.Players())
+            foreach (var pl in game.GetPlayers())
             {
                 j++;
                 if (pl.Name == seplayer.Name) mypos = "Player" + j;
@@ -364,7 +376,8 @@ namespace dsweb_electron6.Data
             });
             **/
             Game.ID = replays.FirstOrDefault().ID;
-            MMGameReport[replays.FirstOrDefault().ID] = DSrest.Report(replays.FirstOrDefault(), replays.FirstOrDefault().ID);
+            //MMGameReport[replays.FirstOrDefault().ID] = DSrest.Report(replays.FirstOrDefault(), replays.FirstOrDefault().ID);
+            MMGameReport[replays.FirstOrDefault().ID] = _mmrep.Report(replays.FirstOrDefault(), replays.FirstOrDefault().ID.ToString()).Result;
             Game.Team1 = MMGameReport[replays.FirstOrDefault().ID].Team1;
             Game.Team2 = MMGameReport[replays.FirstOrDefault().ID].Team2;
             DSGameReport[replays.FirstOrDefault().ID] = replays.FirstOrDefault();

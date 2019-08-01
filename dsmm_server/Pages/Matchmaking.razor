@@ -1,5 +1,6 @@
 @page "/mm"
 @using dsweb_electron6.Models
+@using DSmm.Models;
 @using dsweb_electron6.Data;
 @using dsmm_server.Data;
 @using dsmm_server.Models;
@@ -39,7 +40,7 @@ else if (_conf.Deleted == true)
 }
 else if (_conf.Player == "")
 {
-    <h5>Please enter your ingame Starcraft 2 Player name e.g. shown in the loading screen of Direct Strike</h5>
+    <h5>Please enter your ingame Starcraft2 Player name e.g. shown in the loading screen of Direct Strike</h5>
     <div class="form-group">
         <label for="player_temp">
             Player
@@ -284,7 +285,7 @@ else
                             @for (int i = 0; i < _mm.MMGameReport[_mm.RepID].Team2.Count(); i++)
                             {
                                 var plr = _mm.MMGameReport[_mm.RepID].Team2[i];
-                                var plf = _mm.MMGameReady[_mm.RepID].Players().Where(x => x.Name == plr.Name).FirstOrDefault();
+                                var plf = _mm.MMGameReady[_mm.RepID].GetPlayers().Where(x => x.Name == plr.Name).FirstOrDefault();
 
                                 var color = DSdata.color_null;
                                 var diff = Math.Round(plf.EXP - plr.EXP, 2);
@@ -350,7 +351,7 @@ else
             <div class="row mt-2 mb-2">
                 @if (_mm.preGame != null)
                 {
-                    @foreach (var pl in _mm.preGame.Players())
+                    @foreach (var pl in _mm.preGame.GetPlayers())
                     {
                         <div class="col-auto">
                             @if (pl.Accepted == true)
