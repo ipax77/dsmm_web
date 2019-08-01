@@ -10,6 +10,8 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,9 +48,12 @@ namespace DSmm.Repositories
         static int MMID = 1000;
         bool LobbyCheck = false;
 
-        public DSladder Ranking = new DSladder();
+        public DSladder Ranking { get; private set; } = new DSladder();
+        public DSladder PubRanking { get; private set; } = new DSladder();
 
-        public static string[] laddergames = new string[] {
+        private static ReaderWriterLockSlim _readWriteLockLadder = new ReaderWriterLockSlim();
+
+        public static List<string> laddergames = new List<string>() {
             "(PAX, Kerrigan, 14360, (Panzerfaust, Zagara, 9160), (Feralan, Abathur, 8425) vs (Gorgoroth, Zagara, 4470), (Ragggy, Vorazun, 9850), (macissammich, Zagara, 9295)",
             "(PAX, Abathur, 39975), (Panzerfaust, Kerrigan, 38950, (Gorgoroth, Zagara, 37790) vs (Feralan, Artanis, 34655), (macissammich, Dehaka, 30345), (Ragggy, Fenix, 36165)",
             "(Feralan, Dehaka, 22145, (Gorgoroth, Zagara, 32075), (Ragggy, Alarak, 29090) vs (PAX, Abathur, 17385), (Panzerfaust, Kerrigan, 30610), (macissammich, Zagara, 19065)",
@@ -159,14 +164,50 @@ namespace DSmm.Repositories
                 catch { }
             }
 
-            foreach (var game in laddergames)
+            /**
+            var options = new JsonSerializerOptions
             {
-                RateStringResult(game, Ranking);
-            }
-            Save();
-            Ladder();
-
+                WriteIndented = true
+            };
+            var ladder = System.Text.Json.JsonSerializer.Serialize(laddergames, options);
+            File.WriteAllText(WorkDir + "/ladder.json", ladder);
+            **/
+            GetLadder();
             QMMplayers.CollectionChanged += QplayersChanged;
+
+        }
+
+        public async Task GetLadder()
+        {
+            using (FileStream SourceStream = File.Open(WorkDir + "/ladder.json", FileMode.Open))
+            {
+                laddergames = new List<string>(await System.Text.Json.JsonSerializer.DeserializeAsync<List<string>>(SourceStream));
+            }
+            
+            Ranking = new DSladder();
+
+            await Task.Run(() => { 
+                foreach (var game in laddergames)
+                {
+                    RateStringResult(game, Ranking);
+                }
+                //Save();
+                //Ladder();
+            });
+
+            foreach (var pl in Ranking.MMplayers.Values.ToArray())
+            {
+                if (pl.Name.StartsWith("Random") || pl.Name.StartsWith("Dummy"))
+                    Ranking.MMplayers.Remove(pl.Name);
+            }
+
+            PubRanking = new DSladder();
+            PubRanking.MMplayers = new Dictionary<string, MMplayer>(MMplayers);
+            foreach (var pl in PubRanking.MMplayers.Values.ToArray())
+            {
+                if (pl.Name.StartsWith("Random") || pl.Name.StartsWith("Dummy"))
+                    PubRanking.MMplayers.Remove(pl.Name);
+            }
 
         }
 

@@ -19,5 +19,9 @@ namespace DSmm.Repositories
         Task<string> Random(string name);
         Task<string> Manual(string file, string id);
         Task<DSladder> Ladder(string name);
+        Task GetLadder();
+
+        DSladder Ranking { get; }
+        DSladder PubRanking { get; }
     }
 }

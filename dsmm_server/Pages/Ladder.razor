@@ -1,0 +1,144 @@
+﻿@page "/ladder"
+@using System.Globalization;
+@using DSmm.Repositories;
+@inject IMMrepository _mm
+
+<h3>Ladder</h3>
+<br />
+<div class="row">
+    <div class="jumbotron" style="max-width: 600px;">
+        Every Week on Friday or Saturday we try to play some 'serious' DS-Commander games at ~10 p.m. GMT. Teams/Matchups are generated with the <a href="https://trueskill.org/">Trueskill</a> algorithm from Microsoft.
+        More information is available on <a href="https://discord.gg/h7CVHv">DS Discord</a> # league-info – feel free to join and participate :)
+    </div>
+    <div class="jumbotron ml-3" style="max-width: 600px;">
+        EXP => rating exposure <br />
+        MU => the mean. <br />
+        SIGMA => the standard deviation <br />
+        Detailed explanation: <a href="https://trueskill.org/">Trueskill</a>
+    </div>
+
+</div>
+<br />
+<button class="btn btn-primary" @onclick="GetLadder">Refresh</button>
+<div class="container">
+    <div class="row">
+        <div>
+            <div class="d-none">(@i  = 1)</div>
+            <div class="d-none">(@j  = 1)</div>
+            <h3>Player</h3>
+            <table class="table table-sm table-hover table-dark">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Exp</th>
+                        <th scope="col">MU</th>
+                        <th scope="col">Sigma</th>
+                        <th scope="col">Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ent in _mm.Ranking.MMplayers.OrderByDescending(o => o.Value.EXP))
+                    {
+
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>@ent.Value.Name</td>
+                            <td>@Math.Round(ent.Value.EXP, 2)</td>
+                            <td>@Math.Round(ent.Value.MU, 2)</td>
+                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
+                            <td>@ent.Value.Games</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="ml-3">
+            <h3>Commander</h3>
+            <table class="table table-sm table-hover table-dark">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Exp</th>
+                        <th scope="col">MU</th>
+                        <th scope="col">Sigma</th>
+                        <th scope="col">Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ent in _mm.Ranking.MMraces.OrderByDescending(o => o.Value.EXP))
+                    {
+
+                        <tr>
+                            <td>@(j++)</td>
+                            <td>@ent.Value.Name</td>
+                            <td>@Math.Round(ent.Value.EXP, 2)</td>
+                            <td>@Math.Round(ent.Value.MU, 2)</td>
+                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
+                            <td>@ent.Value.Games</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<br />
+<h3>Public Ladder</h3>
+<br />
+<div class="container">
+    <div class="row">
+        <div>
+            <div class="d-none">(@i  = 1)</div>
+            <div class="d-none">(@j  = 1)</div>
+            <h3>Player</h3>
+            <table class="table table-sm table-hover table-dark">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Exp</th>
+                        <th scope="col">MU</th>
+                        <th scope="col">Sigma</th>
+                        <th scope="col">Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ent in _mm.PubRanking.MMplayers.OrderByDescending(o => o.Value.EXP))
+                    {
+
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>@ent.Value.Name</td>
+                            <td>@Math.Round(ent.Value.EXP, 2)</td>
+                            <td>@Math.Round(ent.Value.MU, 2)</td>
+                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
+                            <td>@ent.Value.Games</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    int i = 1;
+    int j = 1;
+    protected override async Task OnInitAsync()
+    {
+        CultureInfo.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+        //await _mm.GetLadder();
+    }
+
+    async Task GetLadder()
+    {
+        i = 1;
+        j = 1;
+        await _mm.GetLadder();
+        StateHasChanged();
+    }
+
+}
