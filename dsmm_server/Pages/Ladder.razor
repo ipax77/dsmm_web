@@ -90,8 +90,7 @@
 <div class="container">
     <div class="row">
         <div>
-            <div class="d-none">(@i  = 1)</div>
-            <div class="d-none">(@j  = 1)</div>
+            <div class="d-none">(@k  = 1)</div>
             <h3>Player</h3>
             <table class="table table-sm table-hover table-dark">
                 <thead>
@@ -109,7 +108,7 @@
                     {
 
                         <tr>
-                            <td>@(i++)</td>
+                            <td>@(k++)</td>
                             <td>@ent.Value.Name</td>
                             <td>@Math.Round(ent.Value.EXP, 2)</td>
                             <td>@Math.Round(ent.Value.MU, 2)</td>
@@ -127,6 +126,7 @@
 @code {
     int i = 1;
     int j = 1;
+    int k = 1;
     protected override async Task OnInitAsync()
     {
         CultureInfo.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");

@@ -102,6 +102,11 @@ namespace dsweb_electron6.Data
             }
         }
 
+        public void Randoms()
+        {
+            _mmrep.Random(seplayer.Name);
+        }
+
         public void Searching()
         {
             SEARCHING = true;

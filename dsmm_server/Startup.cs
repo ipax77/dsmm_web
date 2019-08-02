@@ -92,7 +92,7 @@ namespace dsmm_server
                 app.UseHsts();
             }
             app.UseMiddleware<HttpExceptionMiddleware>();
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();

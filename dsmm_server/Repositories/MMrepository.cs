@@ -563,8 +563,14 @@ namespace DSmm.Repositories
                 {
                     if (MMplayers[name].Lobby.ContainsKey(MMplayers[name]))
                     {
-                        byte zero = 0;
-                        MMplayers[name].Lobby.TryRemove(MMplayers[name], out zero);
+                        foreach (var pl in MMplayers[name].Lobby.Keys)
+                        {
+                            lock (MMplayers[pl.Name])
+                            {
+                                byte zero = 0;
+                                MMplayers[pl.Name].Lobby.TryRemove(MMplayers[name], out zero);
+                            }
+                        }
                     }
 
                     lock (QMMplayers)
@@ -577,12 +583,17 @@ namespace DSmm.Repositories
 
             // fail safe
             foreach (var lobby in Lobby.Values)
-                foreach (var pl in lobby)
-                    if (pl.Key.Name == name)
+                lock (lobby)
+                {
+                    foreach (var pl in lobby)
                     {
-                        byte zero = 0;
-                        lobby.TryRemove(MMplayers[name], out zero);
+                        if (pl.Key.Name == name)
+                        {
+                            byte zero = 0;
+                            lobby.TryRemove(MMplayers[name], out zero);
+                        }
                     }
+                }
 
             return "Ok";
         }

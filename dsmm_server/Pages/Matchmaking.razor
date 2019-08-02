@@ -126,8 +126,10 @@ else
                         </div>
                     </div>
                     <div class="form-group mr-2 @_mm.RandomIsDisabled">
-                        <input type="checkbox" name="serandom" id="serandom" @bind="@seplayer.Random" />
-                        <label for="serandom" class="control-label">allow Randoms</label>
+                        <input type="checkbox" checked="@seplayer.Random" />
+                        <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
+                            allow Randoms
+                        </button>
                     </div>
                 </form>
                 <br />
@@ -422,6 +424,7 @@ else
     string Error = "";
     bool UpdateRunning = false;
     bool ReportIsClicked = false;
+    bool AllowRandoms = false;
 
     protected override async Task OnInitAsync()
     {
@@ -487,6 +490,8 @@ else
         isAcceptDisabled = false;
         isDeclinedDisabled = false;
         seplayer.Name = _conf.Player;
+        seplayer.Random = false;
+        AllowRandoms = false;
         _conf.Mode1 = seplayer.Mode;
         _conf.Mode2 = seplayer.Mode2;
         _conf.Server = seplayer.Server;
@@ -495,6 +500,13 @@ else
         Task.Run(() => { _mm.FindGame(seplayer); });
         Update();
         _startUp.Save();
+    }
+
+    void Randoms()
+    {
+        AllowRandoms = !AllowRandoms;
+        seplayer.Random = AllowRandoms;
+        Task.Run(() => { _mm.Randoms(); });
     }
 
     void Update()
@@ -521,8 +533,8 @@ else
                 });
             }
 
-        // someone declined - searching again
-        if (_mm.SEARCHING == true && UpdateRunning == false)
+            // someone declined - searching again
+            if (_mm.SEARCHING == true && UpdateRunning == false)
             {
                 isAcceptDisabled = false;
                 isDeclinedDisabled = false;
