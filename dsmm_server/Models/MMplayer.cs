@@ -1,10 +1,10 @@
-﻿using System;
+﻿using dsmm_server.Data;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace DSmm.Models
 {
@@ -136,5 +136,204 @@ namespace DSmm.Models
         public MMgame Game { get; set; }
         public List<BasePlayer> Players { get; set; } = new List<BasePlayer>();
     }
-    
+
+    public class GameStateChange : INotifyPropertyChanged
+    {
+        private bool Update_value = false;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public int GameID { get; set; }
+
+        public bool Update
+        {
+            get { return this.Update_value; }
+            set
+            {
+                if (value != this.Update_value)
+                {
+                    this.Update_value = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+    }
+
+    [Serializable]
+    public class MMPlRating
+    {
+        public double EXP { get; set; } = 0;
+        public double MU { get; set; } = 25;
+        public double SIGMA { get; set; } = 25 / 3;
+        public int Games { get; set; } = 0;
+
+        public MMPlRating()
+        {
+
+        }
+
+        public MMPlRating(MMdbRating dbrat) : this()
+        {
+            EXP = dbrat.EXP;
+            MU = dbrat.MU;
+            SIGMA = dbrat.SIGMA;
+            Games = dbrat.Games;
+        }
+
+        public MMPlRating(MMdbRaceRating dbrat) : this()
+        {
+            EXP = dbrat.EXP;
+            MU = dbrat.MU;
+            SIGMA = dbrat.SIGMA;
+            Games = dbrat.Games;
+        }
+    }
+
+    [Serializable]
+    public class MMplayerNG
+    {
+        public string Name { get; set; } = "";
+        public string AuthName { get; set; }
+        public int DBId { get; set; } = 0;
+        public bool DBupdate { get; set; } = false;
+        public bool Credential { get; set; } = false;
+        public bool Accepted { get; set; } = false;
+        public bool Declined { get; set; } = false;
+        public bool Random { get; set; } = false;
+        [JsonIgnore]
+        public MMgameNG Game { get; set; } = new MMgameNG();
+        [JsonIgnore]
+        public HashSet<MMplayerNG> Lobby { get; set; } = new HashSet<MMplayerNG>();
+        [JsonIgnore]
+        public int Ticks { get; set; } = 0;
+        public string Mode { get; set; } = "Commander";
+        public string Server { get; set; } = "NA";
+        public string Mode2 { get; set; } = "3v3";
+        public bool Ladder { get; set; } = false;
+        public bool Notify { get; set; } = false;
+        public bool Deleted { get; set; } = false;
+        public DateTime MMDeleted { get; set; } = new DateTime(2018, 1, 1);
+        public double ExpChange { get; set; } = 0;
+        public Dictionary<string, MMPlRating> Rating = new Dictionary<string, MMPlRating>()
+        {
+            { "Commander3v3True", new MMPlRating() },
+            { "Commander2v2True", new MMPlRating() },
+            { "Commander1v1True", new MMPlRating() },
+            { "Standard3v3True", new MMPlRating() },
+            { "Standard2v2True", new MMPlRating() },
+            { "Standard1v1True", new MMPlRating() },
+            { "Commander3v3False", new MMPlRating() },
+            { "Commander2v2False", new MMPlRating() },
+            { "Commander1v1False", new MMPlRating() },
+            { "Standard3v3False", new MMPlRating() },
+            { "Standard2v2False", new MMPlRating() },
+            { "Standard1v1Fasle", new MMPlRating() }
+        };
+
+        public MMplayerNG()
+        {
+
+        }
+
+        public MMplayerNG(string name) : this()
+        {
+            Name = name;
+        }
+
+        public MMplayerNG(MMdbPlayer pl) : this()
+        {
+            Name = pl.Name;
+            AuthName = pl.AuthName;
+            DBId = pl.MMdbPlayerId;
+            Credential = pl.Credential;
+            Mode = pl.Mode;
+            Server = pl.Server;
+            Mode2 = pl.Mode2;
+            Ladder = pl.Ladder;
+            Deleted = pl.Deleted;
+            MMDeleted = pl.MMDeleted;
+            if (pl.MMdbRatings != null) {
+                foreach (MMdbRating rat in pl.MMdbRatings)
+                {
+                    var mrat = Rating[rat.Lobby];
+                    mrat.EXP = rat.EXP;
+                    mrat.Games = rat.Games;
+                    mrat.MU = rat.MU;
+                    mrat.SIGMA = rat.SIGMA;
+                }
+            }
+        }
+
+        public MMplayerNG(MMdbRace pl) : this()
+        {
+            Name = pl.Name;
+            AuthName = pl.AuthName;
+            DBId = pl.MMdbRaceId;
+            Credential = pl.Credential;
+            Mode = pl.Mode;
+            Server = pl.Server;
+            Mode2 = pl.Mode2;
+            Ladder = pl.Ladder;
+            Deleted = pl.Deleted;
+            MMDeleted = pl.MMDeleted;
+            if (pl.MMdbRaceRatings != null)
+            {
+                foreach (MMdbRaceRating rat in pl.MMdbRaceRatings)
+                {
+                    var mrat = Rating[rat.Lobby];
+                    mrat.EXP = rat.EXP;
+                    mrat.Games = rat.Games;
+                    mrat.MU = rat.MU;
+                    mrat.SIGMA = rat.SIGMA;
+                }
+            }
+        }
+
+        public MMplayer ShallowCopy()
+        {
+            return (MMplayer)this.MemberwiseClone();
+        }
+
+    }
+
+    public class MMgameNG
+    {
+        public int ID { get; set; } = 0;
+        public string Lobby { get; set; }
+        public int Valid { get; set; } = 0;
+        public DateTime Gametime { get; set; } = DateTime.Now;
+        public List<MMplayerNG> Team1 { get; set; } = new List<MMplayerNG>();
+        public List<MMplayerNG> Team2 { get; set; } = new List<MMplayerNG>();
+        public string Hash { get; set; }
+        public double Quality { get; set; }
+        public string Server { get; set; } = "NA";
+        public bool Accepted { get; set; } = false;
+        public bool Declined { get; set; } = false;
+        public bool Reported { get; set; } = false;
+        public GameStateChange State { get; set; } = new GameStateChange();
+
+        public List<MMplayerNG> GetPlayers()
+        {
+            List<MMplayerNG> ilist = new List<MMplayerNG>();
+            ilist.AddRange(Team1);
+            ilist.AddRange(Team2);
+            return ilist;
+        }
+
+        public void RemovePlayer(string name)
+        {
+            foreach (var pl in Team1.ToArray())
+                if (pl.Name == name)
+                    Team1.Remove(pl);
+
+            foreach (var pl in Team2.ToArray())
+                if (pl.Name == name)
+                    Team2.Remove(pl);
+        }
+    }
 }

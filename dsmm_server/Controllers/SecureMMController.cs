@@ -21,7 +21,7 @@ namespace DSmm.Controllers
         private readonly ILogger _logger;
         private readonly IMMrepository _mmRepository;
 
-        public SecureMMController(IMMrepository MMRepository, ILogger<SecureDataController> logger)
+        public SecureMMController(IMMrepository MMRepository, ILogger<SecureMMController> logger)
         {
             _mmRepository = MMRepository;
             _logger = logger;

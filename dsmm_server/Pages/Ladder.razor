@@ -1,7 +1,10 @@
 ﻿@page "/ladder"
 @using System.Globalization;
 @using DSmm.Repositories;
-@inject IMMrepository _mm
+@using  dsmm_server.Data;
+@using dsweb_electron6.Data;
+@inject IMMrepositoryNG _mm
+@inject StartUp _startUp
 
 <h3>Ladder</h3>
 <br />
@@ -21,6 +24,32 @@
 <br />
 <button class="btn btn-primary" @onclick="GetLadder">Refresh</button>
 <div class="container">
+    <form class="form-inline ml-4">
+        <div class="form-group mr-2">
+            <div class="d-flex flex-column">
+                <label for="semode" class="control-label">
+                    Mode:
+                </label>
+                <div>
+                    <select id="semode" class="form-control" @bind="@Mode">
+                        <option selected="selected">Commander</option>
+                        <option>Standard</option>
+                    </select>
+                    <select id="semode2" class="form-control" @bind="@Mode2">
+                        <option selected="selected">3v3</option>
+                        <option>2v2</option>
+                        <option>1v1</option>
+                    </select>
+                </div>
+                <div class="form-group mr-2">
+                    <input type="checkbox" checked="@isLadder" />
+                    <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
+                        Ladder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
     <div class="row">
         <div>
             <div class="d-none">(@i  = 1)</div>
@@ -38,16 +67,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var ent in _mm.Ranking.MMplayers.OrderByDescending(o => o.Value.EXP))
+                    @foreach (var ent in _startUp.MMplayers.Values.OrderByDescending(o => o.Rating[Mode + Mode2 + isLadder].EXP))
                     {
 
                         <tr>
                             <td>@(i++)</td>
-                            <td>@ent.Value.Name</td>
-                            <td>@Math.Round(ent.Value.EXP, 2)</td>
-                            <td>@Math.Round(ent.Value.MU, 2)</td>
-                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
-                            <td>@ent.Value.Games</td>
+                            <td>@ent.Name</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].EXP, 2)</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].MU, 2)</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].SIGMA, 2)</td>
+                            <td>@ent.Rating[Mode + Mode2 + isLadder].Games</td>
                         </tr>
                     }
                 </tbody>
@@ -67,16 +96,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var ent in _mm.Ranking.MMraces.OrderByDescending(o => o.Value.EXP))
+                    @foreach (var ent in _startUp.MMraces.Values.OrderByDescending(o => o.Rating[Mode + Mode2 + isLadder].EXP))
                     {
-
+                        @if (Mode == "Commander" && DSdata.s_races_std.Contains(ent.Name))
+                        {
+                            continue;
+                        } else if (Mode == "Standard" && !DSdata.s_races_std.Contains(ent.Name))
+                        {
+                            continue;
+                        }
                         <tr>
                             <td>@(j++)</td>
-                            <td>@ent.Value.Name</td>
-                            <td>@Math.Round(ent.Value.EXP, 2)</td>
-                            <td>@Math.Round(ent.Value.MU, 2)</td>
-                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
-                            <td>@ent.Value.Games</td>
+                            <td>@ent.Name</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].EXP, 2)</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].MU, 2)</td>
+                            <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].SIGMA, 2)</td>
+                            <td>@ent.Rating[Mode + Mode2 + isLadder].Games</td>
                         </tr>
                     }
                 </tbody>
@@ -85,59 +120,32 @@
     </div>
 </div>
 <br />
-<h3>Public Ladder</h3>
-<br />
-<div class="container">
-    <div class="row">
-        <div>
-            <div class="d-none">(@k  = 1)</div>
-            <h3>Player</h3>
-            <table class="table table-sm table-hover table-dark">
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Exp</th>
-                        <th scope="col">MU</th>
-                        <th scope="col">Sigma</th>
-                        <th scope="col">Games</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var ent in _mm.PubRanking.MMplayers.OrderByDescending(o => o.Value.EXP))
-                    {
-
-                        <tr>
-                            <td>@(k++)</td>
-                            <td>@ent.Value.Name</td>
-                            <td>@Math.Round(ent.Value.EXP, 2)</td>
-                            <td>@Math.Round(ent.Value.MU, 2)</td>
-                            <td>@Math.Round(ent.Value.SIGMA, 2)</td>
-                            <td>@ent.Value.Games</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 
 @code {
     int i = 1;
     int j = 1;
     int k = 1;
+    string Mode = "Commander";
+    string Mode2 = "3v3";
+    bool isLadder = true;
+    string Lobby;
+
     protected override async Task OnInitAsync()
     {
         CultureInfo.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+        Lobby = Mode + Mode2 + Lobby;
         //await _mm.GetLadder();
+    }
+
+    void LadderClick()
+    {
+        isLadder = !isLadder;
     }
 
     async Task GetLadder()
     {
         i = 1;
         j = 1;
-        await _mm.GetLadder();
         StateHasChanged();
     }
 

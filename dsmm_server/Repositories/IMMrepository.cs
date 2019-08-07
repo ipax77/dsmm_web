@@ -1,6 +1,8 @@
 ﻿using DSmm.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -24,4 +26,17 @@ namespace DSmm.Repositories
         DSladder Ranking { get; }
         DSladder PubRanking { get; }
     }
+
+    public interface IMMrepositoryNG
+    {
+        //ConcurrentDictionary<string, MMplayerNG> MMplayers { get; }
+        ObservableCollection<MMgameNG> Games { get; }
+        ConcurrentDictionary<int, MMgameNG> Reports { get; }
+
+        Task<MMplayerNG> LetmePlay(MMplayerNG pl);
+        Task Accept(string name, int id);
+        Task Decline(string name, int id);
+        void ExitQ(string name);
+    }
+
 }

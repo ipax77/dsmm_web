@@ -93,12 +93,13 @@ namespace s2decode
         }
 
 
-        public void DecodePython(Object stateInfo)
+        public dsreplay DecodePython(Object stateInfo, int ID)
         {
             Interlocked.Increment(ref THREADS);
             //Console.WriteLine("Threads running: " + THREADS);
 
             string rep = (string)stateInfo;
+            dsreplay replay = null;
             string id = Path.GetFileNameWithoutExtension(rep);
             Program.Log("Working on rep .. " + rep , 3);
             Program.Log("Loading s2protocol ..", 3);
@@ -120,7 +121,7 @@ namespace s2decode
             {
                 Program.Log("No MPQArchive for " + id, 3);
                 FailCleanup(rep);
-                return;
+                return null;
             }
             dynamic header = null;
             try
@@ -134,7 +135,7 @@ namespace s2decode
             {
                 Program.Log("No header for " + id + ": " + e.Message, 3);
                 FailCleanup(rep);
-                return;
+                return null;
             }
 
             if (header != null)
@@ -150,7 +151,7 @@ namespace s2decode
                 {
                     Program.Log("No protocol found for " + id);
                     FailCleanup(rep);
-                    return;
+                    return null;
                 }
                 Program.Log("Loading s2protocol protocol finished", 3);
 
@@ -184,12 +185,12 @@ namespace s2decode
                 {
                     Program.Log("No Version for " + id, 3);
                     FailCleanup(rep);
-                    return;
+                    return null;
                 }
                 Program.Log("Loading s2protocol details finished", 3);
 
                 //s2replay replay = s2parse.GetDetails(rep, details_dec);
-                dsreplay replay = DSparse.GetDetails(rep, details_dec);
+                replay = DSparse.GetDetails(rep, details_dec);
 
                 // trackerevents
                 var trackerevents_enc = archive.read_file("replay.tracker.events");
@@ -203,7 +204,7 @@ namespace s2decode
                 {
                     Program.Log("No tracker version for " + id, 3);
                     FailCleanup(rep);
-                    return;
+                    return null;
                 }
                 Program.Log("Loading s2protocol trackerevents finished", 3);
 
@@ -211,11 +212,11 @@ namespace s2decode
                 //s2parse.GetTrackerevents(rep, protocol.decode_replay_tracker_events(trackerevents_enc));
 
                 Interlocked.Increment(ref REPID);
-                replay.ID = REPID;
+                //replay.ID = REPID;
+                replay.ID = ID;
                 //if (!replaysng.ContainsKey(repid)) replaysng.TryAdd(repid, replay);
                 //Save(Program.myJson_file, replay);
                 SaveDS(Program.myJson_file, replay);
-
             }
 
             Interlocked.Increment(ref TOTAL_DONE);
@@ -239,8 +240,8 @@ namespace s2decode
                     //Stop_decode();
                 }
             }
-
             Interlocked.Decrement(ref THREADS);
+            return replay;
         }
 
 
@@ -279,7 +280,8 @@ namespace s2decode
             rep.GenHash();
             if (!_startUp.repHash.Contains(rep.HASH))
             {
-                _startUp.replays[rep.ID] = rep;
+                if (!_startUp.replays.ContainsKey(rep.ID)) _startUp.replays.TryAdd(rep.ID, new List<dsreplay>());
+                _startUp.replays[rep.ID].Add(rep);
                 try
                 {
                     var repjson = JsonSerializer.Serialize(rep);

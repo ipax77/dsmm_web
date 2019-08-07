@@ -15,12 +15,12 @@ namespace dsmm_server
 {
     public class Program
     {
-        public static int DEBUG = 3;
+        public static int DEBUG = 0;
         public static string workdir = "/data";
-        public static string myConfig = workdir + "/config.json";
         public static string myScan_log = workdir + "/log.txt";
         public static string replaydir = workdir + "/replays";
         public static string myJson_file = workdir + "/data.json";
+        public static string ladder_file = workdir + "/ladder.json";
 
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
 
@@ -31,12 +31,6 @@ namespace dsmm_server
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    config.SetBasePath(workdir);
-                    config.AddJsonFile(
-                        "config.json", optional: true, reloadOnChange: false);
-                })
                 .ConfigureLogging((hostingContext, logging) =>
                 {
                     logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));

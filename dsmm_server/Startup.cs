@@ -18,15 +18,18 @@ using dsweb_electron6.Data;
 using Blazor.FileReader;
 using Microsoft.AspNetCore.Http;
 using s2decode;
-using dsweb_electron6.Models;
+using dsmm_server.Models;
 using DSmm;
 using DSmm.Attributes;
 using DSmm.Middleware;
 using DSmm.Repositories;
-using Newtonsoft.Json.Serialization;
+using dsmm_server.Repositories;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Logging;
 
 namespace dsmm_server
 {
+    [DbContext(typeof(MMdb))]
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -40,26 +43,27 @@ namespace dsmm_server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(
-                    //Configuration.GetConnectionString("DefaultConnection")));
-                    //"Server=(localdb)\\mssqllocaldb;Database=aspnet-dsmm_server-B03DA1A3-6841-42DD-B117-EA9441BBEE79;Trusted_Connection=True;MultipleActiveResultSets=true"));
-                "DataSource=/data/app.db"));
+            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=/data/app.db"));
             services.AddDefaultIdentity<IdentityUser>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+            services.AddDbContext<MMdb>(options => options.UseSqlite("Data Source=/data/mm.db"));
+            var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
+            optionsBuilder.UseSqlite("Data Source=/data/mm.db");
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddFileReaderService(options => options.InitializeOnFirstCall = true);
             services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider<IdentityUser>>();
-            services.AddSingleton<StartUp>();
             services.AddScoped<ScanStateChange>();
             services.AddSingleton<S2decode>();
+            services.AddScoped<ReportService>();
             services.AddScoped<MMservice>();
+            services.AddScoped<MMserviceNG>();
             services.AddScoped<DSdyn>();
 
             services.Configure<AppConfig>(Configuration);
-            services.AddSingleton<IDataRepository, DataRepository>();
             services.AddSingleton<IMMrepository, MMrepository>();
+            services.AddSingleton<IMMrepositoryNG, MMrepositoryNG>();
+            services.AddSingleton(new StartUp(optionsBuilder.Options));
             services.AddScoped<AuthenticationFilterAttribute>();
 
         }

@@ -5,12 +5,18 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DSmm.Models;
+using DSmm.Repositories;
+using dsmm_server.Data;
+using dsmm_server.Repositories;
+using dsweb_electron6.Models;
 using Moserware.Skills;
 
 namespace DSmm.Trueskill
 {
     public static class MMrating
     {
+        static Regex rx_pl = new Regex(@"^\(([^\(]+)(.*)");
+
         public static MMgame RateGame(List<MMplayer> t1, List<MMplayer> t2)
         {
             int i = 0;
@@ -58,6 +64,241 @@ namespace DSmm.Trueskill
             }
 
             return game;
+        }
+
+        public static MMgameNG RateGame(Team team1, Team team2, string lobby, StartUp _mm, bool cmdr = false)
+        {
+            var gameInfo = GameInfo.DefaultGameInfo;
+            var teams = Teams.Concat(team1, team2);
+            var newRatingsWinLoseExpected = TrueSkillCalculator.CalculateNewRatings(gameInfo, teams, 1, 2);
+
+            MMgameNG game = new MMgameNG();
+            game.Lobby = lobby;
+            int i = 0;
+            foreach (var pl in team1.AsDictionary().Keys)
+            {
+                var res = newRatingsWinLoseExpected[pl];
+                string name = pl.Id.ToString();
+                MMplayerNG mpl = new MMplayerNG();
+                if (_mm.MMplayers.ContainsKey(name))
+                    mpl = _mm.MMplayers[name];
+                else
+                    mpl.Name = "Dummy" + i;
+
+                if (cmdr == true)
+                    mpl = _mm.MMraces[name];
+
+                double temp = mpl.Rating[lobby].EXP;
+                mpl.Rating[lobby].EXP = res.ConservativeRating;
+                mpl.ExpChange = mpl.Rating[lobby].EXP - temp;
+                mpl.Rating[lobby].MU = res.Mean;
+                mpl.Rating[lobby].SIGMA = res.StandardDeviation;
+                game.Team1.Add(mpl);
+                i++;
+            }
+            foreach (var pl in team2.AsDictionary().Keys)
+            {
+                var res = newRatingsWinLoseExpected[pl];
+                string name = pl.Id.ToString();
+                MMplayerNG mpl = new MMplayerNG();
+                if (_mm.MMplayers.ContainsKey(name))
+                    mpl = _mm.MMplayers[name];
+                else
+                    mpl.Name = "Dummy" + i;
+
+                if (cmdr == true)
+                    mpl = _mm.MMraces[name];
+
+                double temp = mpl.Rating[lobby].EXP;
+                mpl.Rating[lobby].EXP = res.ConservativeRating;
+                mpl.ExpChange = mpl.Rating[lobby].EXP - temp;
+                mpl.Rating[lobby].MU = res.Mean;
+                mpl.Rating[lobby].SIGMA = res.StandardDeviation;
+                game.Team2.Add(mpl);
+                i++;
+            }
+
+            return game;
+        }
+
+        public static (MMgameNG, MMgameNG) RateGame(string result, string lobby, StartUp _mm)
+        {
+            List<RESplayer> pllist = new List<RESplayer>();
+            var teams = result.Split(new string[] { " vs " }, StringSplitOptions.None);
+            if (teams.Length == 2)
+            {
+                int t = 0;
+                int p = 0;
+                foreach (var team in teams)
+                {
+                    Match m = rx_pl.Match(team);
+                    while (m.Success)
+                    {
+                        RESplayer plres = new RESplayer();
+                        plres.Team = t;
+                        plres.Pos = p;
+                        var plent = m.Groups[1].ToString().Split(',', StringSplitOptions.None);
+                        int i = 0;
+                        foreach (var ent in plent)
+                        {
+                            string myent = ent.Replace(" ", string.Empty);
+                            myent = ent.Replace("(", string.Empty);
+                            myent = ent.Replace(")", string.Empty);
+                            if (i == 0) plres.Name = myent;
+                            if (i == 1) plres.Race = myent;
+                            if (i == 2) plres.Kills = int.Parse(myent);
+                            i++;
+                        }
+                        pllist.Add(plres);
+                        m = rx_pl.Match(m.Groups[2].ToString());
+                        p++;
+                    }
+                    t++;
+                }
+            }
+            var team1 = new Team();
+            var team2 = new Team();
+
+            var rteam1 = new Team();
+            var rteam2 = new Team();
+
+            int j = 0;
+            foreach (var pl in pllist)
+            {
+                MMplayerNG mpl = new MMplayerNG();
+                if (_mm.MMplayers.ContainsKey(pl.Name))
+                    mpl = _mm.MMplayers[pl.Name];
+                else
+                {
+                    if (pl.Name.StartsWith("Random") || pl.Name.StartsWith("Dummy"))
+                        mpl.Name = "Dummy" + j;
+                    else
+                    {
+                        mpl.Name = pl.Name;
+                        _mm.MMplayers.TryAdd(mpl.Name, mpl);
+                    }
+                }
+                MMplayerNG rpl = _mm.MMraces[pl.Race];
+
+                if (pl.Team == 0)
+                {
+                    team1.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
+                    rteam1.AddPlayer(new Player(pl.Race), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                }
+                else
+                {
+                    team2.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
+                    rteam2.AddPlayer(new Player(pl.Race), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                }
+                j++;
+            }
+            return (RateGame(team1, team2, lobby, _mm), RateGame(rteam1, rteam2, lobby, _mm, true));
+        }
+
+        public static (MMgameNG, MMgameNG) RateGame(dsreplay replay, StartUp _mm, string lobby)
+        {
+            var team1 = new Team();
+            var team2 = new Team();
+
+            var rteam1 = new Team();
+            var rteam2 = new Team();
+
+            //string lobby = _mm.Games.Where(x => x.ID == replay.ID).FirstOrDefault().Lobby;
+            if (lobby == null || lobby == "") return (null, null);
+            int i = 0;
+            foreach (var pl in replay.PLAYERS)
+            {
+                MMplayerNG mpl = new MMplayerNG();
+                if (_mm.MMplayers.ContainsKey(pl.NAME))
+                    mpl = _mm.MMplayers[pl.NAME];
+                else
+                    mpl.Name = "Dummy" + i;
+
+                MMplayerNG rpl = _mm.MMraces[pl.RACE];
+
+                if (pl.TEAM == replay.WINNER)
+                {
+                    team1.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
+                    rteam1.AddPlayer(new Player(pl.RACE), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                }
+                else
+                {
+                    team2.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
+                    rteam2.AddPlayer(new Player(pl.RACE), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                }
+                rpl.Rating[lobby].Games++;
+                mpl.Rating[lobby].Games++;
+                i++;
+            }
+            return (RateGame(team1, team2, lobby, _mm), RateGame(rteam1, rteam2, lobby, _mm, true));
+        }
+
+        public static async Task<MMgameNG> GenMatch(List<MMplayerNG> qplayers, int size)
+        {
+            List<MMplayerNG> result = new List<MMplayerNG>();
+            int c = 0;
+
+            List<MMplayerNG> players = new List<MMplayerNG>();
+            players = qplayers.Where(x => x.Game.ID == 0).ToList();
+
+            if (players.Count < size) return null;
+
+            string lobby = players.First().Mode + players.First().Mode2 + players.First().Ladder;
+
+            double bestquality = 0;
+            return await Task.Run(() => {
+                while (true)
+                {
+                    c++;
+                    int i = 0;
+                    var team1 = new Team();
+                    var team2 = new Team();
+
+                    var rnd = new Random();
+                    List<MMplayerNG> thisresult = new List<MMplayerNG>(players.Select(x => new { value = x, order = rnd.Next() })
+                                .OrderBy(x => x.order).Select(x => x.value).Take(size).ToList());
+
+                    
+                    foreach (var pl in thisresult)
+                    {
+                        if (i < result.Count() / 2)
+                            team1.AddPlayer(new Player(i), new Rating(pl.Rating[lobby].MU, pl.Rating[lobby].SIGMA));
+                        else
+                            team2.AddPlayer(new Player(i), new Rating(pl.Rating[lobby].MU, pl.Rating[lobby].SIGMA));
+                        i++;
+                    }
+
+                    var gameInfo = GameInfo.DefaultGameInfo;
+                    var teams = Teams.Concat(team1, team2);
+
+                    double thisquality = TrueSkillCalculator.CalculateMatchQuality(gameInfo, teams);
+
+                    if (thisquality > bestquality)
+                    {
+                        bestquality = thisquality;
+                        result = new List<MMplayerNG>(thisresult);
+                    }
+
+                    if (c > 10 && bestquality > 0.5) break;
+                    if (c > 50 && bestquality > 0.4) break;
+                    if (c > 200) break;
+                }
+
+                MMgameNG game = new MMgameNG();
+                game.Quality = bestquality;
+                game.ID = 1;
+                int j = 0;
+                foreach (var pl in result)
+                {
+                    if (j < result.Count() / 2)
+                        game.Team1.Add(pl);
+                    else
+                        game.Team2.Add(pl);
+                    j++;
+                }
+
+                return game;
+            });
         }
 
         public static async Task<MMgame> GenMatch(List<MMplayer> qplayers, int size)

@@ -7,6 +7,7 @@ namespace dsmm_server.Models
 {
     public class UserConfig
     {
+        public int UserConfigId { get; set; }
         public string ID { get; set; }
         public string Player { get; set; } = "";
         public bool Credential { get; set; } = false;

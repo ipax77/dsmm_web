@@ -4,7 +4,7 @@
 @using System.ComponentModel
 @using dsweb_electron6.Models
 @using dsweb_electron6.Data
-@using dsmm_server.Models;
+@using DSmm.Models;
 @implements IDisposable
 
 
@@ -36,7 +36,7 @@
                             {
                                 @SetColor(DSdata.color_plbg_def)
                                 @SetClass("table-dark");
-                                @if (_conf.Player == pl.NAME)
+                                @if (_pl.Name == pl.NAME)
                                 {@SetColor(DSdata.color_plbg_player);
                                 @SetClass("table-primary");
                             }
@@ -151,7 +151,7 @@
                             <tr><td>Winner:</td><td>Team @(@replay.WINNER + 1)</td></tr>
                             @try
                             {
-                                <tr><td>Player:</td><td>@replay.PLAYERS.Where(x => _conf.Player == x.NAME).ToList().ElementAt(0).REALPOS</td></tr>
+                                <tr><td>Player:</td><td>@replay.PLAYERS.Where(x => _pl.Name == x.NAME).ToList().ElementAt(0).REALPOS</td></tr>
                             }
                             catch { }
                             <tr><td>MVP:</td><td>@replay.PLAYERS.Where(x => x.KILLSUM == replay.MAXKILLSUM).ToList().ElementAt(0).REALPOS</td></tr>
@@ -227,7 +227,7 @@
     private dsreplay replay { get; set; }
 
     [Parameter]
-    private UserConfig _conf { get; set; }
+    private MMplayerNG _pl { get; set; }
 
     DSdyn_BuildChecked[] BuildCheck { get; set; }
     //int gameid { get; set; } = 0;
@@ -259,7 +259,7 @@
         dsplayer pl = new dsplayer();
         try
         {
-            pl = replay.PLAYERS.Where(x => _conf.Player == x.NAME).ElementAt(0);
+            pl = replay.PLAYERS.Where(x => _pl.Name == x.NAME).ElementAt(0);
         }
         catch { }
         if (pl != null)
@@ -288,7 +288,7 @@
         {
             ent.PropertyChanged += ShowBuildHandler;
         }
-
+        replayid = replay.ID;
     }
 
     object SetColor(string mycolor)

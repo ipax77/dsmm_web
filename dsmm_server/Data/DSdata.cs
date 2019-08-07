@@ -45,6 +45,12 @@ namespace dsweb_electron6.Data
                  "Zerg"
         };
 
+        public static string[] s_races_std { get; } = new string[]
+        {
+                 "Protoss",
+                 "Terran",
+                 "Zerg"
+        };
         public static string[] s_races_cmdr { get; } = new string[]
         {
                 "Abathur",
