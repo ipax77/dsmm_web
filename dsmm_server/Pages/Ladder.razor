@@ -52,8 +52,6 @@
     </form>
     <div class="row">
         <div>
-            <div class="d-none">(@i  = 1)</div>
-            <div class="d-none">(@j  = 1)</div>
             <h3>Player</h3>
             <table class="table table-sm table-hover table-dark">
                 <thead>
@@ -67,9 +65,13 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr class="d-none">@(i = 1);</tr>
                     @foreach (var ent in _startUp.MMplayers.Values.OrderByDescending(o => o.Rating[Mode + Mode2 + isLadder].EXP))
                     {
-
+                        @if (@ent.Rating[Mode + Mode2 + isLadder].Games == 0)
+                        {
+                            continue;
+                        }
                         <tr>
                             <td>@(i++)</td>
                             <td>@ent.Name</td>
@@ -96,6 +98,7 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr class="d-none">@(j = 1);</tr>
                     @foreach (var ent in _startUp.MMraces.Values.OrderByDescending(o => o.Rating[Mode + Mode2 + isLadder].EXP))
                     {
                         @if (Mode == "Commander" && DSdata.s_races_std.Contains(ent.Name))

@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using DSmm.Repositories;
 using DSmm.Models;
 using dsweb_electron6.Data;
+using DSmm.Trueskill;
 
 namespace dsmm_server.Data
 {
@@ -44,9 +45,13 @@ namespace dsmm_server.Data
                     db.MMdbPlayers.Remove(ent);
                 foreach (var ent in db.MMdbRatings)
                     db.MMdbRatings.Remove(ent);
+                foreach (var ent in db.MMdbRaceRatings)
+                    db.MMdbRaceRatings.Remove(ent);
+                
                 db.SaveChanges();
             }
             **/
+
             // /**
             using (var db = new MMdb(_mmdb))
             {
@@ -95,6 +100,24 @@ namespace dsmm_server.Data
                 }
             }
 
+            // ladder init
+            /**
+            Save();
+            List<string> LadderGames = new List<string>();
+            if (File.Exists(Program.ladder_file))
+            {
+                LadderGames = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(Program.ladder_file));
+            }
+            foreach (var ent in LadderGames)
+            {
+                MMgameNG game;
+                MMgameNG racegame;
+                (game, racegame) = MMrating.RateGame(ent, "Commander3v3True", this);
+                Save();
+                Save(game);
+                SaveRace(racegame);
+            }
+            **/
         }
 
         public async Task Save()
@@ -108,7 +131,6 @@ namespace dsmm_server.Data
                     MMdbPlayer dbpl = new MMdbPlayer(conf);
                     db.MMdbPlayers.Add(dbpl);
                     temp.Add(dbpl);
-
                 }
 
                 foreach (var conf in MMplayers.Values.Where(x => x.DBupdate == true))
@@ -116,6 +138,17 @@ namespace dsmm_server.Data
                     MMdbPlayer pl = new MMdbPlayer(conf);
                     db.MMdbPlayers.Update(pl);
                 }
+
+                
+                List<MMdbRace> race_temp = new List<MMdbRace>();
+                /**
+                foreach (var ent in MMraces.Values)
+                {
+                    MMdbRace cmdr = new MMdbRace(ent);
+                    db.MMdbRaces.Add(cmdr);
+                    race_temp.Add(cmdr);
+                }
+                **/
                 await db.SaveChangesAsync();
 
                 foreach (var ent in temp)
@@ -123,6 +156,83 @@ namespace dsmm_server.Data
                     MMplayerNG pl = MMplayers.Values.Where(x => x.Name == ent.Name).FirstOrDefault();
                     pl.DBId = ent.MMdbPlayerId;
                 }
+
+                foreach (var ent in race_temp)
+                {
+                    MMplayerNG pl = MMraces.Values.Where(x => x.Name == ent.Name).FirstOrDefault();
+                    pl.DBId = ent.MMdbRaceId;
+                }
+
+
+
+            }
+            // **/
+        }
+
+        public async Task Save(MMgameNG game)
+        {
+            // /**
+            using (var _db = new MMdb(_mmdb))
+            {
+                foreach (var pl in game.GetPlayers())
+                {
+                    if (pl.Name.StartsWith("Random") || pl.Name.StartsWith("Dummy")) continue;
+                    var dbpl = _db.MMdbPlayers.Where(x => x.Name == pl.Name).FirstOrDefault();
+                    if (dbpl != null)
+                    {
+                        var dbrat = _db.MMdbRatings.Where(x => x.MMdbPlayerId == dbpl.MMdbPlayerId && x.Lobby == game.Lobby).FirstOrDefault();
+                        if (dbrat == null)
+                            dbrat = new MMdbRating();
+                        var rat = pl.Rating[game.Lobby];
+                        dbrat.EXP = rat.EXP;
+                        dbrat.Games = rat.Games;
+                        dbrat.Lobby = game.Lobby;
+                        dbrat.MU = rat.MU;
+                        dbrat.SIGMA = rat.SIGMA;
+                        dbrat.MMdbPlayerId = dbpl.MMdbPlayerId;
+                        dbrat.MMdbPlayer = dbpl;
+
+                        if (dbrat.MMdbRatingId == null)
+                            dbpl.MMdbRatings.Add(dbrat);
+                        //_db.MMdbRatings.Add(dbrat);
+                        else
+                            _db.MMdbRatings.Update(dbrat);
+                    }
+                }
+                await _db.SaveChangesAsync();
+            }
+            // **/
+
+        }
+        public async Task SaveRace(MMgameNG game)
+        {
+            // /**
+            using (var _db = new MMdb(_mmdb))
+            {
+                foreach (var pl in game.GetPlayers())
+                {
+                    var dbpl = _db.MMdbRaces.Where(x => x.Name == pl.Name).FirstOrDefault();
+                    if (dbpl != null)
+                    {
+                        var dbrat = _db.MMdbRaceRatings.Where(x => x.MMdbRaceId == dbpl.MMdbRaceId && x.Lobby == game.Lobby).FirstOrDefault();
+                        if (dbrat == null)
+                            dbrat = new MMdbRaceRating();
+                        var rat = pl.Rating[game.Lobby];
+                        dbrat.EXP = rat.EXP;
+                        dbrat.Games = rat.Games;
+                        dbrat.Lobby = game.Lobby;
+                        dbrat.MU = rat.MU;
+                        dbrat.SIGMA = rat.SIGMA;
+                        dbrat.MMdbRaceId = dbpl.MMdbRaceId;
+                        dbrat.MMdbRace = dbpl;
+
+                        if (dbrat.MMdbRaceRatingId == null)
+                            dbpl.MMdbRaceRatings.Add(dbrat);
+                        else
+                            _db.MMdbRaceRatings.Update(dbrat);
+                    }
+                }
+                await _db.SaveChangesAsync();
             }
             // **/
         }

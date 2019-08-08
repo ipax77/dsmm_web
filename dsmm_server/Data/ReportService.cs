@@ -9,6 +9,7 @@ using System.Linq;
 using System.IO;
 using System.Text.Json;
 using dsmm_server.Models;
+using System.Text.RegularExpressions;
 
 namespace dsmm_server.Data
 {
@@ -47,6 +48,38 @@ namespace dsmm_server.Data
                     } 
                 }
                 return replay;
+            });
+        }
+
+        public async Task<int> CheckValid(dsreplay replay, MMgameNG game)
+        {
+            int valid = 0;
+            return await Task.Run(() => { 
+                HashSet<string> game_Names = game.GetPlayers().Select(s => s.Name).ToHashSet();
+                foreach (dsplayer dspl in replay.PLAYERS)
+                {
+                    if (game_Names.Contains(dspl.NAME))
+                    {
+                        valid++;
+                        int rep_team = dspl.TEAM + 1;
+                        List<MMplayerNG> game_team = new List<MMplayerNG>();
+                        if (game.Team1.Select(s => s.Name == dspl.NAME).Count() > 0)
+                            game_team = game.Team1;
+                        else
+                            game_team = game.Team2;
+
+                        foreach (dsplayer tdspl in replay.PLAYERS.Where(x => x.TEAM == dspl.TEAM))
+                        {
+                            if (tdspl.NAME == dspl.NAME) continue;
+                            if (game_Names.Contains(tdspl.NAME))
+                            {
+                                if (game_team.Where(x => x.Name == tdspl.NAME).Count() > 0)
+                                    valid++;
+                            }
+                        }
+                    }
+                }
+                return valid;
             });
         }
 
@@ -118,6 +151,26 @@ namespace dsmm_server.Data
             }
             await _db.SaveChangesAsync();
             // **/
+        }
+
+        public bool CheckName(string name)
+        {
+            if (name.Length <= 2)
+            {
+                return false;
+            }
+
+            if (name.Length > 64)
+            {
+                return false;
+            }
+
+            if (Regex.Escape(name) != name)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

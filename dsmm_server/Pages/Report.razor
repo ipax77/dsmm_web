@@ -33,6 +33,7 @@
 <input class="form-control-sm" type="number" @bind="@_mms.RepID" />
 <input class="form-control-file w-50" type="file" @ref="@inputTypeFileElement" />
 <br />
+<!--
 <div class="@DropClass"
      @ref="@dropTargetElement"
      @ondrop="@OnDrop"
@@ -44,6 +45,7 @@
         <br />@fileInfo.Name
     }
 </div>
+-->
 <button @onclick="@ReadFile" class="btn btn-primary">Upload</button>
 <button @onclick="@ClearFile" class="btn btn-primary">Clear</button>
 <br />
@@ -66,14 +68,18 @@
 
     protected override async Task OnAfterRenderAsync()
     {
-        dropReference = fileReaderService.CreateReference(dropTargetElement);
-        await dropReference.RegisterDropEventsAsync();
+        //dropReference = fileReaderService.CreateReference(dropTargetElement);
+        //if (dropReference != null)
+        //    await dropReference.RegisterDropEventsAsync();
     }
 
     public async Task ClearFile()
     {
-        await dropReference.ClearValue();
-        await this.RefreshFileList();
+        try
+        {
+            await dropReference.ClearValue();
+            await this.RefreshFileList();
+        } catch { }
     }
 
     public async Task OnDrop(UIDragEventArgs e)
@@ -97,6 +103,14 @@
 
     public async Task ReadFile()
     {
+
+        if (!_repserv.CheckName(_pl.Name))
+        {
+            _mms.InfoBadge = "badge-danger";
+            _mms.InfoBadgeMsg = "Invalid Name";
+            return;
+        }
+
         Output = string.Empty;
         this.StateHasChanged();
 
@@ -115,8 +129,6 @@
             Output = "File already uploaded. If you choose the wrong replay please contact the admin.";
             return;
         }
-        else
-            File.Create(upRep).Dispose();
 
         int i = 0;
         bool valid = true;
@@ -133,6 +145,7 @@
             }
             (valid, fileBytes) = await GetFile(file);
         }
+        /**
         foreach (var file in await dropReference.EnumerateFilesAsync())
         {
             i++;
@@ -144,10 +157,16 @@
             }
             (valid, fileBytes) = await GetFile(file);
         }
+        **/
 
+        if (i == 0)
+        {
+            Output = "Pelase select one file.";
+            return;
+        }
         if (valid == true && _mm != null)
         {
-
+            File.Create(upRep).Dispose();
             await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
             Output += "Decoding replay..." + Environment.NewLine;
             StateHasChanged();
@@ -163,6 +182,7 @@
                 if (report != null)
                 {
                     report.ID = _mms.RepID;
+                    report.Valid = await _repserv.CheckValid(replay, report);
                     _mm.Reports[replay.ID] = report;
                     _mms.InfoBadge = "badge-success";
                     _mms.InfoBadgeMsg = "Reported";

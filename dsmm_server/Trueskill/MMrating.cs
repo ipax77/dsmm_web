@@ -141,9 +141,10 @@ namespace DSmm.Trueskill
                         int i = 0;
                         foreach (var ent in plent)
                         {
-                            string myent = ent.Replace(" ", string.Empty);
-                            myent = ent.Replace("(", string.Empty);
-                            myent = ent.Replace(")", string.Empty);
+                            string myent = ent.Trim();
+                            myent = myent.Replace(" ", string.Empty);
+                            myent = myent.Replace("(", string.Empty);
+                            myent = myent.Replace(")", string.Empty);
                             if (i == 0) plres.Name = myent;
                             if (i == 1) plres.Race = myent;
                             if (i == 2) plres.Kills = int.Parse(myent);
@@ -179,6 +180,9 @@ namespace DSmm.Trueskill
                     }
                 }
                 MMplayerNG rpl = _mm.MMraces[pl.Race];
+
+                mpl.Rating[lobby].Games++;
+                rpl.Rating[lobby].Games++;
 
                 if (pl.Team == 0)
                 {

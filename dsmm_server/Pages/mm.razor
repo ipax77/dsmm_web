@@ -8,6 +8,7 @@
 @using System.ComponentModel;
 @using DSmm.Repositories;
 @using System.Timers;
+@using System.Text.RegularExpressions;
 @inject IMMrepositoryNG _mm
 @inject MMserviceNG _mms
 @inject AuthenticationStateProvider _auth
@@ -90,53 +91,62 @@ else
             </div>
             <div>
                 <form class="form-inline ml-4">
-                    <div class="form-group mr-2">
-                        <div class="d-flex flex-column">
-                            <label for="ip_playername" class="control-label">
-                                Player:
-                            </label>
-                            <input type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
-                        </div>
-                    </div>
-                    <div class="form-group mr-2">
-                        <div class="d-flex flex-column">
-                            <label for="semode" class="control-label">
-                                Mode:
-                            </label>
-                            <div>
-                                <select id="semode" class="form-control" @bind="@Player.Mode">
-                                    <option selected="selected">Commander</option>
-                                    <option>Standard</option>
-                                </select>
-                                <select id="semode2" class="form-control" @bind="@Player.Mode2">
-                                    <option selected="selected">3v3</option>
-                                    <option>2v2</option>
-                                    <option>1v1</option>
-                                </select>
+                        <fieldset disabled="@_mms.isFindDisabled"  class="form-inline ml-4">
+                                <div class="form-group mr-2">
+                                    <div class="d-flex flex-column">
+                                        <label for="ip_playername" class="control-label">
+                                            Player:
+                                        </label>
+                                        <input type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
+                                    </div>
+                                </div>
+                                <div class="form-group mr-2">
+                                    <div class="d-flex flex-column">
+                                        <label for="semode" class="control-label">
+                                            Mode:
+                                        </label>
+                                        <div>
+                                            <select id="semode" class="form-control" @bind="@Player.Mode">
+                                                <option selected="selected">Commander</option>
+                                                <option>Standard</option>
+                                            </select>
+                                            <select id="semode2" class="form-control" @bind="@Player.Mode2">
+                                                <option selected="selected">3v3</option>
+                                                <option>2v2</option>
+                                                <option>1v1</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group mr-2">
+                                    <div class="d-flex flex-column">
+                                        <label for="seserver" class="control-label">
+                                            Server:
+                                        </label>
+                                        <div>
+                                            <select id="seserver" class="form-control" @bind="@Player.Server">
+                                                <option selected="selected">NA</option>
+                                                <option>EU</option>
+                                                <option>KOR</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group mr-2">
+                                    <input type="checkbox" checked="@Player.Ladder" />
+                                    <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
+                                        Ladder
+                                    </button>
+                                </div>
+                            </fieldset>
+                            <div class="form-group mr-2 @_mms.RandomIsDisabled">
+                                <input type="checkbox" checked="@Player.Random" />
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
+                                    allow Randoms
+                                </button>
                             </div>
-                        </div>
-                    </div>
-                    <div class="form-group mr-2">
-                        <div class="d-flex flex-column">
-                            <label for="seserver" class="control-label">
-                                Server:
-                            </label>
-                            <div>
-                                <select id="seserver" class="form-control" @bind="@Player.Server">
-                                    <option selected="selected">NA</option>
-                                    <option>EU</option>
-                                    <option>KOR</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group mr-2 @_mms.RandomIsDisabled">
-                        <input type="checkbox" checked="@Player.Random" />
-                        <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
-                            allow Randoms
-                        </button>
-                    </div>
-                </form>
+
+</form>
                 <br />
                 <div class="row ml-5">
                     <div>
@@ -200,11 +210,11 @@ else
                                 {
                                     if (ent == _mms.RepID)
                                     {
-                                        <option selected="selected">@ent</option>
+                                        <option value="@ent" selected="selected">@ent</option>
                                     }
                                     else
                                     {
-                                        <option>@ent</option>
+                                        <option value="@ent">@ent</option>
                                     }
                                 }
                             </select>
@@ -216,7 +226,14 @@ else
                 <h5>Team1</h5>
                 <table class="table table-sm table-dark table-hover">
                     <thead>
-                        <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        @if (_mms.RepID == 0)
+                        {
+                            <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        }
+                        else
+                        {
+                            <tr><th>Name</th><th>Exp</th><th>ExpChange</th></tr>
+                        }
                     </thead>
                     <tbody>
                         @if (_mms.RepID == 0)
@@ -243,8 +260,15 @@ else
                             {
                                 <tr>
                                     <td>@pl.Name</td>
-                                    <td>@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</td>
-                                    <td>@Math.Round(pl.ExpChange, 2)</td>
+                                    <td><h5><span class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</span></h5></td>
+                                    @if (pl.ExpChange < 0)
+                                    {
+                                        <td><h5><span class="badge badge-danger" style="min-width: 70px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+                                    else
+                                    {
+                                        <td><h5><span class="badge badge-success" style="min-width: 70px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
 
                                 </tr>
                             }
@@ -256,7 +280,14 @@ else
                 <h5>Team2</h5>
                 <table class="table table-sm table-dark table-hover">
                     <thead>
-                        <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        @if (_mms.RepID == 0)
+                        {
+                            <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        }
+                        else
+                        {
+                            <tr><th>Name</th><th>Exp</th><th>ExpChange</th></tr>
+                        }
                     </thead>
                     <tbody>
                         @if (_mms.RepID == 0)
@@ -280,11 +311,19 @@ else
                         {
                             @foreach (var pl in _mm.Reports[_mms.RepID].Team2)
                             {
-                            <tr>
-                                <td>@pl.Name</td>
-                                <td>@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</td>
-                                <td>@Math.Round(pl.ExpChange, 2)</td>
-                            </tr>
+                                <tr>
+                                    <td>@pl.Name</td>
+                                    <td><h5><spann class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</spann></h5></td>
+                                    @if (pl.ExpChange < 0)
+                                    {
+                                        <td><h5><span class="badge badge-danger" style="min-width: 80px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+                                    else
+                                    {
+                                        <td><h5><span class="badge badge-success" style="min-width: 80px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+
+                                </tr>
                             }
                         }
                     </tbody>
@@ -369,9 +408,9 @@ else
     <br />
     @if (_mms.RepID > 0 && _startUp.replays.ContainsKey(_mms.RepID) && _startUp.replays[_mms.RepID].Count() > 0)
     {
-        //<div class="container-fluid">
-        //    <Game replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
-        //</div>
+        <div class="container-fluid">
+            <Game replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
+        </div>
     }
 }
 
@@ -408,12 +447,10 @@ else
 
     async Task Save()
     {
-        if (_mms.temp_Playername.Length <= 2)
-        {
-            _mms.Failed = true;
-            _mms.Error = "Not a valid Starcraft2 playername.";
+
+        if (!CheckName(_mms.temp_Playername))
             return;
-        }
+
         if (_startUp.Players.Contains(_mms.temp_Playername))
         {
             _mms.Failed = true;
@@ -433,8 +470,40 @@ else
         await _startUp.Save();
     }
 
+    bool CheckName(string name)
+    {
+        if (name.Length <= 2)
+        {
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
+        }
+
+        if (name.Length > 64)
+        {
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
+        }
+
+        if (Regex.Escape(name) != name)
+        {
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
+        }
+
+        return true;
+    }
+
     async Task Findgame()
     {
+        if (!CheckName(Player.Name))
+        {
+            _mms.InfoBadge = "badge-danger";
+            _mms.InfoBadgeMsg = "Invalid Name";
+            return;
+        }
         _time = new TimeSpan(0);
         _mms.RepID = 0;
         _mms.RepSelDisabled = true;
@@ -456,6 +525,11 @@ else
     void Randoms()
     {
         Player.Random = !Player.Random;
+    }
+
+    void LadderClick()
+    {
+        Player.Ladder = !Player.Ladder;
     }
 
     void Reportgame()
