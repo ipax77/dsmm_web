@@ -91,60 +91,59 @@ else
             </div>
             <div>
                 <form class="form-inline ml-4">
-                        <fieldset disabled="@_mms.isFindDisabled"  class="form-inline ml-4">
-                                <div class="form-group mr-2">
-                                    <div class="d-flex flex-column">
-                                        <label for="ip_playername" class="control-label">
-                                            Player:
-                                        </label>
-                                        <input type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
-                                    </div>
-                                </div>
-                                <div class="form-group mr-2">
-                                    <div class="d-flex flex-column">
-                                        <label for="semode" class="control-label">
-                                            Mode:
-                                        </label>
-                                        <div>
-                                            <select id="semode" class="form-control" @bind="@Player.Mode">
-                                                <option selected="selected">Commander</option>
-                                                <option>Standard</option>
-                                            </select>
-                                            <select id="semode2" class="form-control" @bind="@Player.Mode2">
-                                                <option selected="selected">3v3</option>
-                                                <option>2v2</option>
-                                                <option>1v1</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group mr-2">
-                                    <div class="d-flex flex-column">
-                                        <label for="seserver" class="control-label">
-                                            Server:
-                                        </label>
-                                        <div>
-                                            <select id="seserver" class="form-control" @bind="@Player.Server">
-                                                <option selected="selected">NA</option>
-                                                <option>EU</option>
-                                                <option>KOR</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group mr-2">
-                                    <input type="checkbox" checked="@Player.Ladder" />
-                                    <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
-                                        Ladder
-                                    </button>
-                                </div>
-                            </fieldset>
-                            <div class="form-group mr-2 @_mms.RandomIsDisabled">
-                                <input type="checkbox" checked="@Player.Random" />
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
-                                    allow Randoms
-                                </button>
+                        
+                        <div class="form-group mr-2">
+                            <div class="d-flex flex-column">
+                                <label for="ip_playername" class="control-label">
+                                    Player:
+                                </label>
+                                <input disabled="@_mms.isFindDisabled" type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
                             </div>
+                        </div>
+                        <div class="form-group mr-2">
+                            <div class="d-flex flex-column">
+                                <label for="semode" class="control-label">
+                                    Mode:
+                                </label>
+                                <div>
+                                    <select disabled="@_mms.isFindDisabled" id="semode" class="form-control" @bind="@Player.Mode">
+                                        <option selected="selected">Commander</option>
+                                        <option>Standard</option>
+                                    </select>
+                                    <select disabled="@_mms.isFindDisabled" id="semode2" class="form-control" @bind="@Player.Mode2">
+                                        <option selected="selected">3v3</option>
+                                        <option>2v2</option>
+                                        <option>1v1</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mr-2">
+                            <div class="d-flex flex-column">
+                                <label for="seserver" class="control-label">
+                                    Server:
+                                </label>
+                                <div>
+                                    <select disabled="@_mms.isFindDisabled" id="seserver" class="form-control" @bind="@Player.Server">
+                                        <option selected="selected">NA</option>
+                                        <option>EU</option>
+                                        <option>KOR</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mr-2">
+                            <input type="checkbox" checked="@Player.Ladder" />
+                            <button disabled="@_mms.isFindDisabled" type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
+                                Ladder
+                            </button>
+                        </div>
+                    <div class="form-group mr-2 @_mms.RandomIsDisabled">
+                        <input type="checkbox" checked="@Player.Random" />
+                        <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
+                            allow Randoms
+                        </button>
+                    </div>
 
 </form>
                 <br />
@@ -416,57 +415,62 @@ else
 
 
 @code {
-    MMplayerNG Player = new MMplayerNG();
-    dsreplay replay;
-    string AuthName = "";
+        MMplayerNG Player = new MMplayerNG();
+        dsreplay replay;
+        string AuthName = "";
 
-    TimeSpan _time { get; set; } = new TimeSpan(0);
+        TimeSpan _time { get; set; } = new TimeSpan(0);
 
-    protected override async Task OnInitAsync()
-    {
-        var authState = await _auth.GetAuthenticationStateAsync();
-        var user = authState.User;
-        AuthName = user.Identity.Name;
-        if (user.Identity.IsAuthenticated)
+        protected override async Task OnInitAsync()
         {
-            //if (_startUp.MMplayers.ContainsKey(user.Identity.Name))
-            if (_startUp.Auth.ContainsKey(user.Identity.Name))
+            var authState = await _auth.GetAuthenticationStateAsync();
+            var user = authState.User;
+            AuthName = user.Identity.Name;
+            if (user.Identity.IsAuthenticated)
             {
-                string name = _startUp.Auth[user.Identity.Name];
-                Player = _startUp.MMplayers[name];
+                //if (_startUp.MMplayers.ContainsKey(user.Identity.Name))
+                if (_startUp.Auth.ContainsKey(user.Identity.Name))
+                {
+                    string name = _startUp.Auth[user.Identity.Name];
+                    Player = _startUp.MMplayers[name];
+                }
             }
+            _state.PropertyChanged += StateUpdate;
         }
-        _state.PropertyChanged += StateUpdate;
-    }
 
 
-    private void StateUpdate(object sender, PropertyChangedEventArgs e)
-    {
-        Invoke(() => StateHasChanged());
-    }
-
-    async Task Save()
-    {
-
-        if (!CheckName(_mms.temp_Playername))
-            return;
-
-        if (_startUp.Players.Contains(_mms.temp_Playername))
+        private void StateUpdate(object sender, PropertyChangedEventArgs e)
         {
-            _mms.Failed = true;
-            _mms.Error = "Player already used. Please login to use this ID.";
-            return;
+            Invoke(() => StateHasChanged());
         }
 
-        _mms.Failed = false;
-        _mms.Saved = true;
-        Player.Name = _mms.temp_Playername;
-        if (_startUp.MMplayers.ContainsKey(Player.Name))
-            Player = _startUp.MMplayers[Player.Name];
-        else
-            _startUp.MMplayers.TryAdd(Player.Name, Player);
-        Player.Credential = true;
-        Player.AuthName = AuthName;
+        async Task Save()
+        {
+
+            if (!CheckName(_mms.temp_Playername))
+                return;
+
+            if (_startUp.Players.Contains(_mms.temp_Playername))
+            {
+                _mms.Failed = true;
+                _mms.Error = "Player already used. Please login to use this ID.";
+                return;
+            }
+
+            _mms.Failed = false;
+            _mms.Saved = true;
+            Player.Name = _mms.temp_Playername;
+            if (_startUp.MMplayers.ContainsKey(Player.Name))
+                Player = _startUp.MMplayers[Player.Name];
+            else
+                _startUp.MMplayers.TryAdd(Player.Name, Player);
+            Player.Credential = true;
+            Player.AuthName = AuthName;
+            if (AuthName != null && AuthName != "")
+            {
+                _startUp.Players.Add(Player.Name);
+                _startUp.Auth[AuthName] = Player.Name;
+        }
         await _startUp.Save();
     }
 
@@ -503,6 +507,11 @@ else
             _mms.InfoBadge = "badge-danger";
             _mms.InfoBadgeMsg = "Invalid Name";
             return;
+        }
+        if (AuthName != null && AuthName != "")
+        {
+            _startUp.Players.Add(Player.Name);
+            _startUp.Auth[AuthName] = Player.Name;
         }
         _time = new TimeSpan(0);
         _mms.RepID = 0;
