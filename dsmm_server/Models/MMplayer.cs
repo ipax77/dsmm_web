@@ -294,9 +294,9 @@ namespace DSmm.Models
             }
         }
 
-        public MMplayer ShallowCopy()
+        public MMplayerNG ShallowCopy()
         {
-            return (MMplayer)this.MemberwiseClone();
+            return (MMplayerNG)this.MemberwiseClone();
         }
 
     }

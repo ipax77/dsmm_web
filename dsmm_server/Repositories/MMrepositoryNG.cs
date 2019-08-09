@@ -309,15 +309,16 @@ namespace dsmm_server.Repositories
             }
             else
             {
+                MMplayerNG _sepl = sepl.ShallowCopy();
                 ExitQ(sepl.Name);
-                _startUp.MMplayers[sepl.Name].Mode = sepl.Mode;
-                _startUp.MMplayers[sepl.Name].Mode2 = sepl.Mode2;
-                _startUp.MMplayers[sepl.Name].Server = sepl.Server;
-                _startUp.MMplayers[sepl.Name].Random = sepl.Random;
-                _startUp.MMplayers[sepl.Name].Ladder = sepl.Ladder;
-                _startUp.MMplayers[sepl.Name].Ticks = sepl.Ticks;
+                _startUp.MMplayers[sepl.Name].Mode = _sepl.Mode;
+                _startUp.MMplayers[sepl.Name].Mode2 = _sepl.Mode2;
+                _startUp.MMplayers[sepl.Name].Server = _sepl.Server;
+                _startUp.MMplayers[sepl.Name].Random = _sepl.Random;
+                _startUp.MMplayers[sepl.Name].Ladder = _sepl.Ladder;
+                _startUp.MMplayers[sepl.Name].Ticks = _sepl.Ticks;
             }
-            string lobby = sepl.Mode + sepl.Mode2 + sepl.Ladder;
+            string lobby = _startUp.MMplayers[sepl.Name].Mode + _startUp.MMplayers[sepl.Name].Mode2 + _startUp.MMplayers[sepl.Name].Ladder;
             lock (Lobbies[lobby])
             {
                 Lobbies[lobby].Add(_startUp.MMplayers[sepl.Name]);
