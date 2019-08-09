@@ -199,26 +199,6 @@ else
                         </div>
                     </div>
                     <br />
-                    <div class="form-group mr-2">
-                        <div class="d-flex flex-column">
-                            <label for="reports" class="control-label">
-                                Reports:
-                            </label>
-                            <select id="reports" class="form-control" disabled="@_mms.RepSelDisabled" @bind="@_mms.RepID">
-                                @foreach  (var ent in _mm.Reports.Keys)
-                                {
-                                    if (ent == _mms.RepID)
-                                    {
-                                        <option value="@ent" selected="selected">@ent</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@ent">@ent</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                    </div>
                 </form>
             </div>
             <div class="col-auto">
@@ -407,9 +387,9 @@ else
     <br />
     @if (_mms.RepID > 0 && _startUp.replays.ContainsKey(_mms.RepID) && _startUp.replays[_mms.RepID].Count() > 0)
     {
-        <div class="container-fluid">
-            <Game replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
-        </div>
+<div class="container-fluid">
+    <Game2 replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
+</div>
     }
 }
 

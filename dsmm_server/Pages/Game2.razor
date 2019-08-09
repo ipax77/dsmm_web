@@ -1,0 +1,222 @@
+@page "/game2"
+@using System.Linq
+@using System.Globalization
+@using System.ComponentModel
+@using dsweb_electron6.Models
+@using dsweb_electron6.Data
+@using DSmm.Models;
+
+<h3>Gameinfo</h3>
+<br />
+@if (replay != null)
+{
+<div class="container-fluid">
+    <div class="row">
+        <h4><span class="badge badge-secondary mr-2">Duration @replay.GetDuration() min</span></h4>
+        <h4><span class="badge badge-secondary mr-2">Gametime @replay.GAMETIME.ToString().Substring(0, 8)</span></h4>
+        <!--<h4><span class="badge badge-secondary mr-2">Player POS @replay.PLAYERS.Where(x => x.NAME == _pl.Name).FirstOrDefault().REALPOS</span></h4>-->
+        <h4><span class="badge badge-secondary">MVP Player @replay.PLAYERS.Where(x => x.KILLSUM == replay.MAXKILLSUM).ToList().ElementAt(0).REALPOS</span></h4>
+    </div>
+    <div class="row">
+        <div>
+            <div class="row">
+                @for (int i = 0; i < 2; i++)
+                {
+                <div>
+                    @if (replay.WINNER == i)
+                    {
+                        TeamClass = "badge-success";
+                        <h4><span class="badge @TeamClass">Team @(i + 1)</span> Winner</h4> 
+                    }
+                    else
+                    {
+                        TeamClass = "badge-danger";
+                        <h4><span class="badge @TeamClass">Team @(i + 1)</span></h4>
+                    }
+
+
+                    <table class="table table-sm table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th>Build</th>
+                                <th>Cmdr</th>
+                                <th>Army</th>
+                                <th>Kills</th>
+                                <th>Cash</th>
+                                <th>DPS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (dsplayer pl in @replay.PLAYERS.Where(x => x.TEAM == i).OrderBy(o => o.REALPOS))
+                            {
+                                @if (_pl.Name == pl.NAME)
+                                {
+                                    PlayerClass = "table-primary";
+                                }
+                                else if (pl.KILLSUM == replay.MAXKILLSUM)
+                                {
+                                    PlayerClass = "table-secondary";
+                                }
+                                else
+                                {
+                                    PlayerClass = "table-dark";
+                                }
+                                <tr class="@PlayerClass table-row" @onclick="@(() => BuildCheck[pl.REALPOS] = !BuildCheck[pl.REALPOS])">
+                                    <td>@pl.REALPOS</td>
+                                    <td width="30px"><img alt="img_@pl.RACE" longdesc="img_@pl.RACE" src="@DSdata.GetIcon(@pl.RACE)" width="30" height="30" /></td>
+                                    <td><input id="build_@pl.RACE\_@pl.REALPOS" name="build_@pl.RACE" type="checkbox" checked="@BuildCheck[pl.REALPOS]" /></td>
+                                    <td>@pl.RACE</td>
+                                    <td>@(Math.Round((double)pl.ARMY / 1000, 2))k</td>
+                                    <td>@(Math.Round((double)pl.KILLSUM / 1000, 2))k</td>
+                                    <td>@(Math.Round((double)pl.INCOME / 1000, 2))k</td>
+                                    <td>@pl.GetDPV().ToString("0.00")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                }
+            </div>
+            <div>
+                <div class="form-check  form-check-inline">
+                    <input class="form-check-input" type="radio" name="breakpoints" id="bp5" @onchange="@(() => Breakpoint = "MIN5")" />
+                    <label class="form-check-label" for="bp5">
+                        min5
+                    </label>
+                </div>
+                <div class="form-check  form-check-inline">
+                    <input class="form-check-input" type="radio" name="breakpoints" id="bp10" @onchange="@(() => Breakpoint = "MIN10")" />
+                    <label class="form-check-label" for="bp10">
+                        min10
+                    </label>
+                </div>
+                <div class="form-check  form-check-inline">
+                    <input class="form-check-input" type="radio" name="breakpoints" id="bp15" @onchange="@(() => Breakpoint = "MIN15")" />
+                    <label class="form-check-label" for="bp15">
+                        min15
+                    </label>
+                </div>
+                <div class="form-check  form-check-inline">
+                    <input class="form-check-input" type="radio" name="breakpoints" id="bpall" @onchange="@(() => Breakpoint = "ALL")" />
+                    <label class="form-check-label" for="bpall">
+                        all
+                    </label>
+                </div>
+            </div>
+            <div class="container-fluid" style="min-height: 594px !important;">
+                <div class="row">
+                        @for (int i = 0; i < BuildCheck.Count(); i++)
+                        {
+                            if (BuildCheck[i] == true)
+                            {
+                                dsplayer pl = replay.PLAYERS.Where(x => x.REALPOS == i).FirstOrDefault();
+                                if (pl != null)
+                                {
+                                    if (pl.TEAM == replay.WINNER)
+                                    {
+                                        BuildPlayerClass = "badge-success";
+                                    }
+                                    else
+                                    {
+                                        BuildPlayerClass = "badge-danger";
+                                    }
+                                    <div>
+                                        <h4><span class="badge @BuildPlayerClass">Build Player @i</span></h4>
+                                        @if (pl.UNITS.ContainsKey(Breakpoint))
+                                        {
+                                        <div class="row">
+                                            <span class="badge badge-light">Gas @pl.UNITS[Breakpoint].Where(x => x.Key == "Gas").FirstOrDefault().Value</span>
+                                            <span class="badge badge-light">Mid @(Math.Round((double)pl.UNITS[Breakpoint].Where(x => x.Key == "Mid").FirstOrDefault().Value / BreakpointMid[Breakpoint] * 100, 2))%</span>
+                                        </div>
+                                        <span class="badge badge-light">Upgrades @pl.UNITS[Breakpoint].Where(x => x.Key == "Upgrades").FirstOrDefault().Value</span>
+                                        }
+                                        <table class="table table-sm table-dark">
+                                            <thead>
+                                                <tr>
+                                                    <th>Unit</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (pl.UNITS.ContainsKey(Breakpoint))
+                                                {
+                                                    @foreach (var unit in pl.UNITS[Breakpoint].OrderByDescending(o => o.Value))
+                                                    {
+                                                        if (unit.Key == "Gas" || unit.Key == "Mid" || unit.Key == "Upgrades")
+                                                            continue;
+                                                        <tr>
+                                                            <td>@unit.Key</td>
+                                                            <td>@unit.Value</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            }
+                        }
+                </div>
+            </div>
+        </div>
+        <div>
+
+
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    [Parameter]
+    private dsreplay replay { get; set; }
+    [Parameter]
+    private MMplayerNG _pl { get; set; }
+
+    string TeamClass = "badge-primary";
+    string PlayerClass = "table-primary";
+    string BuildPlayerClass = "badge-primary";
+    List<bool> BuildCheck;
+    string Breakpoint = "MIN10";
+
+    static double MIN5 = 6720;
+    static double MIN10 = 13440;
+    static double MIN15 = 20160;
+
+    Dictionary<string, double> BreakpointMid = new Dictionary<string, double>()
+    {
+        { "MIN5", MIN5 },
+        { "MIN10", MIN10 },
+        { "MIN15", MIN15 }
+    };
+
+    protected override void OnInit()
+    {
+        BuildCheck = new List<bool>();
+        for (int i = 0; i<=7 ;i++)
+        {
+            BuildCheck.Add(false);
+        }
+
+        if (replay != null)
+        {
+            BreakpointMid.Add("ALL", replay.DURATION);
+        }
+    }
+
+    void BreakpointClick(string bp)
+    {
+        Breakpoint = bp;
+    }
+
+    EventCallback ShowBuild(int pos)
+    {
+        EventCallback e = new EventCallback();
+        BuildCheck[pos] = true;
+
+        return e;
+    }
+
+}

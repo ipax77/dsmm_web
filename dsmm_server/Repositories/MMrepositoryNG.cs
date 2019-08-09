@@ -64,7 +64,7 @@ namespace dsmm_server.Repositories
         private ConcurrentBag<string> ReplayHash { get; set; } = new ConcurrentBag<string>();
 
         private readonly ILogger _logger;
-        private static string WorkDir { get; } = "/data";
+        private static string WorkDir { get; } = Program.workdir;
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
         SemaphoreSlim semaphore = new SemaphoreSlim(1);
 
@@ -116,21 +116,14 @@ namespace dsmm_server.Repositories
             {
                 try
                 {
-                    var json = JsonSerializer.Deserialize<MMgameNG>(file);
+                    var json = JsonSerializer.Deserialize<MMgameNG>(File.ReadAllText(file));
                     Reports.TryAdd(json.ID, json);
                 }
-                catch { }
+                catch (Exception e) {
+                    Console.WriteLine(e.Message);
+                }
             }
 
-            foreach (var file in Directory.EnumerateFiles(WorkDir + "/games", "*_replay_*.json"))
-            {
-                try
-                {
-                    var json = JsonSerializer.Deserialize<dsreplay>(file);
-                    ReplayHash.Add(json.HASH);
-                }
-                catch { }
-            }
             Games.CollectionChanged += GamesChanged;
         }
 
@@ -149,8 +142,6 @@ namespace dsmm_server.Repositories
 
             if (lobby != null && lobby.Count > 0 && aArgs.Action == NotifyCollectionChangedAction.Add)
             {
-                //_logger.LogInformation("Check lobby " + lobby.Count);
-                //await CheckLobby(lobby);
                 if (LobbyCheck == false)
                 {
                     LobbyCheck = true;
@@ -168,11 +159,13 @@ namespace dsmm_server.Repositories
                 while (LobbyCheck)
                 {
                     Thread.Sleep(500);
+                    int i = 0;
                     foreach (var lobby in Lobbies.Keys)
                     {
                         if (Lobbies[lobby] != null && Lobbies[lobby].Count > 0)
                         {
                             //_logger.LogInformation("Check lobby " + lobby.Count);
+                            i++;
                             lock (Lobbies[lobby])
                             {
                                 if (checking == false)
@@ -184,6 +177,8 @@ namespace dsmm_server.Repositories
                             }
                         }
                     }
+                    if (i == 0)
+                        LobbyCheck = false;
                 }
                 _logger.LogInformation("LobbyJob halted.");
             });

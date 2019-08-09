@@ -16,6 +16,7 @@
 @inject IFileReaderService fileReaderService;
 
 <h3>Report</h3>
+<button @onclick="@Close" class="btn btn-primary">Close</button>
 <style>
     .droptarget {
         display: block;
@@ -30,8 +31,49 @@
         font-weight: bold;
     }
 </style>
-<input class="form-control-sm" type="number" @bind="@_mms.RepID" />
-<input class="form-control-file w-50" type="file" @ref="@inputTypeFileElement" />
+<form class="form-inline mb-2">
+    <div class="d-flex flex-column mr-4">
+        <label for="i_mmid" class="control-label">
+            MMID:
+        </label>
+        <input class="form-control" type="number" @bind="@_mms.RepID" id="i_mmid" />
+    </div>
+    <div class="form-group mr-2">
+        <div class="d-flex flex-column">
+            <label for="reports" class="control-label">
+                Report for MMID:
+            </label>
+            <select id="reports" class="form-control" disabled="@_mms.RepSelDisabled" @bind="@_mms.RepID">
+                @foreach (var ent in _mm.Reports.Keys)
+                {
+                    if (ent == _mms.RepID)
+                    {
+                        <option value="@ent" selected="selected">@ent</option>
+                    }
+                    else
+                    {
+                        <option value="@ent">@ent</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+</form>
+<div class="form-group">
+    <label for="i_replay">Choose replay</label>
+    <input type="file" @ref="inputTypeFileElement" id="i_replay" name="replay" accept=".SC2Replay" />
+</div>
+<!--
+<div class="input-group mb-3 w-50">
+    <div class="input-group-prepend">
+        <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+    </div>
+    <div class="custom-file">
+        <input type="file" class="custom-file-input" id="inputGroupFile01" aria-describedby="inputGroupFileAddon01">
+        <label class="custom-file-label" for="inputGroupFile01">Choose replay</label>
+    </div>
+</div>
+    -->
 <br />
 <!--
 <div class="@DropClass"
@@ -60,6 +102,7 @@
     ElementRef dropTargetElement;
     IFileReaderRef dropReference;
     byte[] buffer;
+    string FileName = "Choose replay";
 
     const string _dropClass = "droptarget";
     string DropClass { get; set; } = _dropClass;
@@ -75,11 +118,13 @@
 
     public async Task ClearFile()
     {
+        FileName = "Choose replay";
         try
         {
             await dropReference.ClearValue();
             await this.RefreshFileList();
-        } catch { }
+        }
+        catch { }
     }
 
     public async Task OnDrop(UIDragEventArgs e)
@@ -111,6 +156,18 @@
             return;
         }
 
+        if (_mms.RepID == 0)
+        {
+            Output = "Please select a valid MMID.";
+            return;
+        }
+
+        if (_mm.Games.Select(s => s.ID == _mms.RepID).Count() == 0)
+        {
+            Output = "Please select a valid MMID.";
+            return;
+        }
+
         Output = string.Empty;
         this.StateHasChanged();
 
@@ -133,7 +190,6 @@
         int i = 0;
         bool valid = true;
         ConcurrentDictionary<int, byte[]> fileBytes = new ConcurrentDictionary<int, byte[]>();
-
         foreach (var file in await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync())
         {
             i++;
@@ -166,14 +222,13 @@
         }
         if (valid == true && _mm != null)
         {
-            File.Create(upRep).Dispose();
             await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
             Output += "Decoding replay..." + Environment.NewLine;
             StateHasChanged();
             dsreplay replay = await _repserv.Decode(upRep, _mms.RepID);
-
             Output += "Reporting replay .." + Environment.NewLine;
             StateHasChanged();
+            int quality = await _repserv.CheckValid(replay, _mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault());
             if (!_mm.Reports.ContainsKey(replay.ID))
             {
                 MMgameNG report;
@@ -182,7 +237,8 @@
                 if (report != null)
                 {
                     report.ID = _mms.RepID;
-                    report.Valid = await _repserv.CheckValid(replay, report);
+                    //report.Valid = await _repserv.CheckValid(replay, report);
+                    report.Valid = quality;
                     _mm.Reports[replay.ID] = report;
                     _mms.InfoBadge = "badge-success";
                     _mms.InfoBadgeMsg = "Reported";
@@ -198,9 +254,12 @@
             }
             else
             {
+                if (quality > _mm.Reports[_mms.RepID].Valid)
+                {
+
+                }
                 _mms.InfoBadge = "badge-success";
                 _mms.InfoBadgeMsg = "Reported";
-
             }
             _mms.ReportIsClicked = false;
             _state.Update = !_state.Update;
@@ -267,6 +326,11 @@
         return (valid, fileBytes);
     }
 
+    void Close()
+    {
+        _mms.ReportIsClicked = false;
+        _state.Update = !_state.Update;
+    }
 
     public static byte[] Concat(params byte[][] arrays)
     {
