@@ -232,7 +232,7 @@ namespace DSmm.Models
             { "Commander1v1False", new MMPlRating() },
             { "Standard3v3False", new MMPlRating() },
             { "Standard2v2False", new MMPlRating() },
-            { "Standard1v1Fasle", new MMPlRating() }
+            { "Standard1v1False", new MMPlRating() }
         };
 
         public MMplayerNG()

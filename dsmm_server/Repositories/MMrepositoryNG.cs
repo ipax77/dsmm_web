@@ -40,7 +40,7 @@ namespace dsmm_server.Repositories
             "Commander1v1False",
             "Standard3v3False",
             "Standard2v2False",
-            "Standard1v1Fasle",
+            "Standard1v1False",
         };
 
         public static Dictionary<string, int> s_size = new Dictionary<string, int>()
