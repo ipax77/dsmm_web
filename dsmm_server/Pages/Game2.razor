@@ -288,6 +288,12 @@
     object NewReplay()
     {
         replayid = replay.ID;
+
+        if (replay != null)
+        {
+            BreakpointMid["ALL"] = replay.DURATION;
+        }
+
         dsplayer pl = replay.PLAYERS.Where(x => x.NAME == _pl.Name).FirstOrDefault();
         int plpos = 0;
         int opppos = 0;
