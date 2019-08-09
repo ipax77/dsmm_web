@@ -56,7 +56,7 @@ namespace dsmm_server.Repositories
             {"Commander1v1False", 2 },
             {"Standard3v3False", 6 },
             {"Standard2v2False", 4 },
-            {"Standard1v1Fasle", 2 }
+            {"Standard1v1False", 2 }
         };
 
         public ObservableCollection<MMgameNG> Games { get; set; } = new ObservableCollection<MMgameNG>();
