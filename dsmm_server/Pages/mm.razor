@@ -91,61 +91,60 @@ else
             </div>
             <div>
                 <form class="form-inline ml-4">
-                        
-                        <div class="form-group mr-2">
-                            <div class="d-flex flex-column">
-                                <label for="ip_playername" class="control-label">
-                                    Player:
-                                </label>
-                                <input disabled="@_mms.isFindDisabled" type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
+
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="ip_playername" class="control-label">
+                                Player:
+                            </label>
+                            <input disabled="@_mms.isFindDisabled" type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
+                        </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="semode" class="control-label">
+                                Mode:
+                            </label>
+                            <div>
+                                <select disabled="@_mms.isFindDisabled" id="semode" class="form-control" @bind="@Player.Mode">
+                                    <option selected="selected">Commander</option>
+                                    <option>Standard</option>
+                                </select>
+                                <select disabled="@_mms.isFindDisabled" id="semode2" class="form-control" @bind="@Player.Mode2">
+                                    <option selected="selected">3v3</option>
+                                    <option>2v2</option>
+                                    <option>1v1</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <div class="d-flex flex-column">
-                                <label for="semode" class="control-label">
-                                    Mode:
-                                </label>
-                                <div>
-                                    <select disabled="@_mms.isFindDisabled" id="semode" class="form-control" @bind="@Player.Mode">
-                                        <option selected="selected">Commander</option>
-                                        <option>Standard</option>
-                                    </select>
-                                    <select disabled="@_mms.isFindDisabled" id="semode2" class="form-control" @bind="@Player.Mode2">
-                                        <option selected="selected">3v3</option>
-                                        <option>2v2</option>
-                                        <option>1v1</option>
-                                    </select>
-                                </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="seserver" class="control-label">
+                                Server:
+                            </label>
+                            <div>
+                                <select disabled="@_mms.isFindDisabled" id="seserver" class="form-control" @bind="@Player.Server">
+                                    <option selected="selected">NA</option>
+                                    <option>EU</option>
+                                    <option>KOR</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="form-group mr-2">
-                            <div class="d-flex flex-column">
-                                <label for="seserver" class="control-label">
-                                    Server:
-                                </label>
-                                <div>
-                                    <select disabled="@_mms.isFindDisabled" id="seserver" class="form-control" @bind="@Player.Server">
-                                        <option selected="selected">NA</option>
-                                        <option>EU</option>
-                                        <option>KOR</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group mr-2">
-                            <input type="checkbox" checked="@Player.Ladder" />
-                            <button disabled="@_mms.isFindDisabled" type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
-                                Ladder
-                            </button>
-                        </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <input type="checkbox" checked="@Player.Ladder" />
+                        <button disabled="@_mms.isFindDisabled" type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
+                            Ladder
+                        </button>
+                    </div>
                     <div class="form-group mr-2 @_mms.RandomIsDisabled">
                         <input type="checkbox" checked="@Player.Random" />
                         <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
                             allow Randoms
                         </button>
                     </div>
-
-</form>
+                </form>
                 <br />
                 <div class="row ml-5">
                     <div>
@@ -163,6 +162,10 @@ else
                         </h4>
                     </div>
                 </div>
+                <div class="jumbotron w-50">
+                    @_mms.Info
+                </div>
+
             </div>
         </div>
     </div>
@@ -381,9 +384,6 @@ else
             </div>
         </div>
     }
-    <div class="jumbotron w-75">
-        @_mms.Info
-    </div>
     <br />
     @if (_mms.RepID > 0 && _startUp.replays.ContainsKey(_mms.RepID) && _startUp.replays[_mms.RepID].Count() > 0)
     {

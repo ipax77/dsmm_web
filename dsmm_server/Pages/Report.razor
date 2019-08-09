@@ -15,8 +15,10 @@
 @inject IMMrepositoryNG _mm
 @inject IFileReaderService fileReaderService;
 
-<h3>Report</h3>
-<button @onclick="@Close" class="btn btn-primary">Close</button>
+<div class="row">
+    <button @onclick="@Close" class="btn btn-primary mr-1">Close</button>
+    <h4>Report</h4>
+</div>
 <style>
     .droptarget {
         display: block;
@@ -74,7 +76,6 @@
     </div>
 </div>
     -->
-<br />
 <!--
 <div class="@DropClass"
      @ref="@dropTargetElement"
@@ -89,9 +90,10 @@
 </div>
 -->
 <button @onclick="@ReadFile" class="btn btn-primary">Upload</button>
-<button @onclick="@ClearFile" class="btn btn-primary">Clear</button>
+<button @onclick="@ClearFile" class="btn btn-sm btn-primary">Clear</button>
+<button class="btn btn-primary btn-sm" @onclick="@(() => _state.Update = !_state.Update)">Refresh</button>
+<!--<textarea style="max-width: 100%; overflow-y:scroll; " cols="40" rows="5">@Output</textarea>-->
 <br />
-<textarea style="max-width: 100%; overflow-y:scroll; " cols="40" rows="5">@Output</textarea>
 @code {
     [Parameter]
     MMserviceNG _mms { get; set; }
@@ -224,9 +226,13 @@
         {
             await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
             Output += "Decoding replay..." + Environment.NewLine;
+            _mms.InfoBadge = "badge-info";
+            _mms.InfoBadgeMsg = "Decoding ..";
             StateHasChanged();
             dsreplay replay = await _repserv.Decode(upRep, _mms.RepID);
             Output += "Reporting replay .." + Environment.NewLine;
+            _mms.InfoBadge = "badge-info";
+            _mms.InfoBadgeMsg = "Reporting ..";
             StateHasChanged();
             int quality = await _repserv.CheckValid(replay, _mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault());
             if (!_mm.Reports.ContainsKey(replay.ID))
