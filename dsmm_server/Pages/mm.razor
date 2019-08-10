@@ -78,7 +78,7 @@ else
                     <button class="btn btn-primary btn-sm mb-2" disabled="@_mms.isFindDisabled" @onclick="@Findgame">Find game</button>
                     <button class="btn btn-primary btn-sm mb-2" @onclick="@Reportgame">Report game</button>
                     <button class="btn btn-primary btn-sm mb-2" @onclick="@Exitfind">Exit</button>
-                    <button class="btn btn-primary btn-sm mb-2" @onclick="@(() => StateHasChanged())">Refresh</button>
+                    <!---<button class="btn btn-primary btn-sm mb-2" @onclick="@(() => StateHasChanged())">Refresh</button>-->
                 </div>
                 <div class="d-flex flex-column">
                     <label for="mymu">My rating:</label>
@@ -91,7 +91,6 @@ else
             </div>
             <div>
                 <form class="form-inline ml-4">
-
                     <div class="form-group mr-2">
                         <div class="d-flex flex-column">
                             <label for="ip_playername" class="control-label">
@@ -162,10 +161,11 @@ else
                         </h4>
                     </div>
                 </div>
-                <div class="jumbotron w-50">
-                    @_mms.Info
+                <div style="max-width: 579px;">
+                    <div class="jumbotron">
+                        @_mms.Info
+                    </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -346,8 +346,8 @@ else
             <button type="button" class="btn btn-success mt-1 mr-2" disabled="@_mms.isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
             <button type="button" class="btn btn-danger btn-sm mt-1 mr-2" disabled="@_mms.isDeclinedDisabled" @onclick="@Declinegame">decline</button>
             <div class="row mt-2 mb-2">
-                    @foreach (var pl in Player.Game.GetPlayers())
-                    {
+                @foreach (var pl in Player.Game.GetPlayers())
+                {
                     <div class="col-auto">
                         @if (pl.Accepted == true)
                         {
@@ -362,7 +362,7 @@ else
                             <h4><span class="badge badge-warning">@pl.Name</span></h4>
                         }
                     </div>
-                    }
+                }
             </div>
             <div class="jumbotron w-75">
                 <h5>Game Found!</h5>
@@ -387,69 +387,74 @@ else
     <br />
     @if (_mms.RepID > 0 && _startUp.replays.ContainsKey(_mms.RepID) && _startUp.replays[_mms.RepID].Count() > 0)
     {
-<div class="container-fluid">
-    <Game2 replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
-</div>
+        <div class="container-fluid">
+            <Game2 replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
+        </div>
     }
 }
 
 
 @code {
-        MMplayerNG Player = new MMplayerNG();
-        dsreplay replay;
-        string AuthName = "";
+    MMplayerNG Player = new MMplayerNG();
+    dsreplay replay;
+    string AuthName = "";
 
-        TimeSpan _time { get; set; } = new TimeSpan(0);
+    TimeSpan _time { get; set; } = new TimeSpan(0);
 
-        protected override async Task OnInitAsync()
+    protected override async Task OnInitAsync()
+    {
+        var authState = await _auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        AuthName = user.Identity.Name;
+        if (user.Identity.IsAuthenticated)
         {
-            var authState = await _auth.GetAuthenticationStateAsync();
-            var user = authState.User;
-            AuthName = user.Identity.Name;
-            if (user.Identity.IsAuthenticated)
+            //if (_startUp.MMplayers.ContainsKey(user.Identity.Name))
+            if (_startUp.Auth.ContainsKey(user.Identity.Name))
             {
-                //if (_startUp.MMplayers.ContainsKey(user.Identity.Name))
-                if (_startUp.Auth.ContainsKey(user.Identity.Name))
-                {
-                    string name = _startUp.Auth[user.Identity.Name];
-                    Player = _startUp.MMplayers[name];
-                }
+                string name = _startUp.Auth[user.Identity.Name];
+                Player = _startUp.MMplayers[name];
             }
-            _state.PropertyChanged += StateUpdate;
         }
 
+        //debug
+        //Player.Credential = true;
+        //Player.Name = "bab";
 
-        private void StateUpdate(object sender, PropertyChangedEventArgs e)
+        _state.PropertyChanged += StateUpdate;
+    }
+
+
+    private void StateUpdate(object sender, PropertyChangedEventArgs e)
+    {
+        Invoke(() => StateHasChanged());
+    }
+
+    async Task Save()
+    {
+
+        if (!CheckName(_mms.temp_Playername))
+            return;
+
+        if (_startUp.Players.Contains(_mms.temp_Playername))
         {
-            Invoke(() => StateHasChanged());
+            _mms.Failed = true;
+            _mms.Error = "Player already used. Please login to use this ID.";
+            return;
         }
 
-        async Task Save()
+        _mms.Failed = false;
+        _mms.Saved = true;
+        Player.Name = _mms.temp_Playername;
+        if (_startUp.MMplayers.ContainsKey(Player.Name))
+            Player = _startUp.MMplayers[Player.Name];
+        else
+            _startUp.MMplayers.TryAdd(Player.Name, Player);
+        Player.Credential = true;
+        Player.AuthName = AuthName;
+        if (AuthName != null && AuthName != "")
         {
-
-            if (!CheckName(_mms.temp_Playername))
-                return;
-
-            if (_startUp.Players.Contains(_mms.temp_Playername))
-            {
-                _mms.Failed = true;
-                _mms.Error = "Player already used. Please login to use this ID.";
-                return;
-            }
-
-            _mms.Failed = false;
-            _mms.Saved = true;
-            Player.Name = _mms.temp_Playername;
-            if (_startUp.MMplayers.ContainsKey(Player.Name))
-                Player = _startUp.MMplayers[Player.Name];
-            else
-                _startUp.MMplayers.TryAdd(Player.Name, Player);
-            Player.Credential = true;
-            Player.AuthName = AuthName;
-            if (AuthName != null && AuthName != "")
-            {
-                _startUp.Players.Add(Player.Name);
-                _startUp.Auth[AuthName] = Player.Name;
+            _startUp.Players.Add(Player.Name);
+            _startUp.Auth[AuthName] = Player.Name;
         }
         await _startUp.Save();
     }
@@ -523,6 +528,8 @@ else
 
     void Reportgame()
     {
+        if (_mms.isFindDisabled == true) return;
+        _mms.Info = "To report a game please upload the propper Direct Strike Replay. TY!";
         _mms.RepID = Player.Game.ID;
         _mms.isFindDisabled = false;
         _mms.RepSelDisabled = false;
@@ -585,13 +592,13 @@ else
         if (creator == mypos.ToString())
         {
             _mms.Info = "Game found! You have been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and create a private Direct Strike Lobby. " +
-                "Join the Channel sc2dsmm by typing ‘/join sc2dsmm’ in the Starcraft 2 chat and post the lobby link combined with the MMID by typing ‘/lobbylink " +
-                mmid + "’ (without the quotes). Have fun! :)";
+                "Join the Channel sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat and post the lobby link combined with the MMID by typing \"/lobbylink " +
+                mmid + "\" (without the quotes). Have fun! :)";
         }
         else
         {
             _mms.Info = "Game found! Player " + creator + " has been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and join the Channel" +
-                " sc2dsmm by typing ‘/join sc2dsmm’ in the Starcraft 2 chat. Wait for the lobby link combined with the MMID " +
+                " sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat. Wait for the lobby link combined with the MMID " +
                 mmid + " and click on it. Have fun! :)";
         }
     }
@@ -601,7 +608,7 @@ else
         _mms._time = new TimeSpan(0);
         // Create a timer with a two second interval.
         _mms.aTimer = new System.Timers.Timer(2000);
-        // Hook up the Elapsed event for the timer. 
+        // Hook up the Elapsed event for the timer.
         _mms.aTimer.Elapsed += async (sender, e) => await HandleTimer();
         _mms.aTimer.AutoReset = true;
         _mms.aTimer.Enabled = true;
@@ -614,7 +621,8 @@ else
             _mms.aTimer.Stop();
             _mms.aTimer.Elapsed -= async (sender, e) => await HandleTimer();
             _mms.aTimer.Dispose();
-        } catch { }
+        }
+        catch { }
     }
 
     private async Task HandleTimer()

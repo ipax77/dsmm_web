@@ -208,7 +208,7 @@ namespace dsmm_server.Repositories
             }
             if (lobby.Count >= lobbysize)
             {
-                if (minticks > Minticks || lobby.Count >= lobbysize)
+                if (minticks > Minticks || lobby.Count > lobbysize)
                 {
                     _logger.LogInformation("Generating Matchup .. " + minticks);
                     game = await MMrating.GenMatch(lobby.ToList(), lobbysize);

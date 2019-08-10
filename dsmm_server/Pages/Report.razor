@@ -76,7 +76,6 @@
     </div>
 </div>
     -->
-<!--
 <div class="@DropClass"
      @ref="@dropTargetElement"
      @ondrop="@OnDrop"
@@ -88,7 +87,6 @@
         <br />@fileInfo.Name
     }
 </div>
--->
 <button @onclick="@ReadFile" class="btn btn-primary">Upload</button>
 <button @onclick="@ClearFile" class="btn btn-sm btn-primary">Clear</button>
 <button class="btn btn-primary btn-sm" @onclick="@(() => _state.Update = !_state.Update)">Refresh</button>
@@ -113,9 +111,12 @@
 
     protected override async Task OnAfterRenderAsync()
     {
-        //dropReference = fileReaderService.CreateReference(dropTargetElement);
-        //if (dropReference != null)
-        //    await dropReference.RegisterDropEventsAsync();
+        dropReference = fileReaderService.CreateReference(dropTargetElement);
+        if (dropReference != null)
+            try
+            {
+                await dropReference.RegisterDropEventsAsync();
+            } catch { }
     }
 
     public async Task ClearFile()
@@ -203,7 +204,7 @@
             }
             (valid, fileBytes) = await GetFile(file);
         }
-        /**
+        
         foreach (var file in await dropReference.EnumerateFilesAsync())
         {
             i++;
@@ -215,7 +216,7 @@
             }
             (valid, fileBytes) = await GetFile(file);
         }
-        **/
+        
 
         if (i == 0)
         {
