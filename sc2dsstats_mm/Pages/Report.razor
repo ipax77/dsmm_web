@@ -1,0 +1,362 @@
+﻿@page "/report"
+@using System.IO;
+@using Blazor.FileReader;
+@using sc2dsstats.Models;
+@using dsmm_server.Data;
+@using dsmm_server.Models;
+@using System.Collections.Concurrent;
+@using System.Threading;
+@using DSmm.Models;
+@using DSmm.Trueskill;
+@using DSmm.Repositories;
+@inject ScanStateChange _state
+@inject ReportService _repserv
+@inject StartUp _startUp
+@inject IMMrepositoryNG _mm
+@inject IFileReaderService fileReaderService;
+
+<div class="row">
+    <button @onclick="@Close" class="btn btn-primary mr-1">Close</button>
+    <h4>Report</h4>
+</div>
+<style>
+    .droptarget {
+        display: block;
+        padding: 20px;
+        margin-bottom: 10px;
+        border: 1px dashed black;
+        border-radius: 5px;
+    }
+
+    .droptarget-drag {
+        border-color: orangered;
+        font-weight: bold;
+    }
+</style>
+<form class="form-inline mb-2">
+    <div class="d-flex flex-column mr-4">
+        <label for="i_mmid" class="control-label">
+            MMID:
+        </label>
+        <input class="form-control" type="number" @bind="@_mms.RepID" id="i_mmid" />
+    </div>
+    <div class="form-group mr-2">
+        <div class="d-flex flex-column">
+            <label for="reports" class="control-label">
+                Report for MMID:
+            </label>
+            <select id="reports" class="form-control" disabled="@_mms.RepSelDisabled" @bind="@_mms.RepID">
+                @foreach (var ent in _mm.Reports.Keys)
+                {
+                    if (ent == _mms.RepID)
+                    {
+                        <option value="@ent" selected="selected">@ent</option>
+                    }
+                    else
+                    {
+                        <option value="@ent">@ent</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+</form>
+<div class="form-group">
+    <label for="i_replay">Choose replay</label>
+    <input type="file" @ref="inputTypeFileElement" @ref:suppressField id="i_replay" name="replay" accept=".SC2Replay" />
+</div>
+<!--
+<div class="input-group mb-3 w-50">
+    <div class="input-group-prepend">
+        <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+    </div>
+    <div class="custom-file">
+        <input type="file" class="custom-file-input" id="inputGroupFile01" aria-describedby="inputGroupFileAddon01">
+        <label class="custom-file-label" for="inputGroupFile01">Choose replay</label>
+    </div>
+</div>
+    -->
+<div class="@DropClass"
+     @ref="@dropTargetElement"
+     @ref:suppressField
+     @ondrop="@OnDrop"
+     @ondragenter="@(e => this.DropClass += " droptarget-drag")"
+     @ondragleave="@(e => this.DropClass = _dropClass)">
+    Drop Replay here or select it.
+    @foreach (var fileInfo in FileList)
+    {
+        <br />@fileInfo.Name
+    }
+</div>
+
+<div>
+    <button class="btn btn-primary" @onclick="@ReadFile">Upload</button>
+    <button class="btn btn-sm btn-primary" @onclick="@ClearFile">Clear</button>
+    <button class="btn btn-primary btn-sm" @onclick="@(() => _state.Update = !_state.Update)">Refresh</button>
+    <!--<textarea style="max-width: 100%; overflow-y:scroll; " cols="40" rows="5">@Output</textarea>-->
+</div>
+<br />
+
+@code {
+    [Parameter]
+    public MMserviceNG _mms { get; set; }
+    [Parameter]
+    public MMplayerNG _pl { get; set; }
+
+    ElementReference inputTypeFileElement;
+    ElementReference dropTargetElement;
+
+    IFileReaderRef dropReference;
+    byte[] buffer;
+    string FileName = "Choose replay";
+
+    const string _dropClass = "droptarget";
+    string DropClass { get; set; } = _dropClass;
+    string Output { get; set; }
+    List<IFileInfo> FileList { get; } = new List<IFileInfo>();
+
+    protected override async Task OnAfterRenderAsync()
+    {
+        dropReference = fileReaderService.CreateReference(dropTargetElement);
+        if (dropReference != null)
+            try
+            {
+                await dropReference.RegisterDropEventsAsync();
+            }
+            catch { }
+    }
+
+    public async Task ClearFile()
+    {
+        FileName = "Choose replay";
+        try
+        {
+            await dropReference.ClearValue();
+            await this.RefreshFileList();
+        }
+        catch { }
+    }
+
+    public async Task OnDrop(UIDragEventArgs e)
+    {
+        Output += "Dropped a file.";
+        this.DropClass = _dropClass;
+        this.StateHasChanged();
+        await this.RefreshFileList();
+    }
+
+    private async Task RefreshFileList()
+    {
+        this.FileList.Clear();
+        foreach (var file in await dropReference.EnumerateFilesAsync())
+        {
+            var fileInfo = await file.ReadFileInfoAsync();
+            this.FileList.Add(fileInfo);
+        }
+        this.StateHasChanged();
+    }
+
+    public async Task ReadFile()
+    {
+
+        if (!_repserv.CheckName(_pl.Name))
+        {
+            _mms.InfoBadge = "badge-danger";
+            _mms.InfoBadgeMsg = "Invalid Name";
+            return;
+        }
+
+        if (_mms.RepID == 0)
+        {
+            Output = "Please select a valid MMID.";
+            return;
+        }
+
+        if (_mm.Games.Select(s => s.ID == _mms.RepID).Count() == 0)
+        {
+            Output = "Please select a valid MMID.";
+            _mms.InfoBadge = "badge-danger";
+            _mms.InfoBadgeMsg = "Invalid MMID";
+            return;
+        }
+
+        Output = string.Empty;
+        this.StateHasChanged();
+
+        _mms.InfoBadge = "badge-info";
+        _mms.InfoBadgeMsg = "Reporting";
+
+        _state.Update = !_state.Update;
+
+        if (_startUp.replays.ContainsKey(_mms.RepID))
+            if (_startUp.replays[_mms.RepID].Count() >= 6)
+                return;
+
+        string upRep = Program.replaydir + "/" + _mms.RepID + "_" + _pl.Name + ".SC2Replay";
+        if (File.Exists(upRep))
+        {
+            Output = "File already uploaded. If you choose the wrong replay please contact the admin.";
+            return;
+        }
+
+        int i = 0;
+        bool valid = true;
+        ConcurrentDictionary<int, byte[]> fileBytes = new ConcurrentDictionary<int, byte[]>();
+        foreach (var file in await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync())
+        {
+            i++;
+            if (i > 1)
+            {
+                valid = false;
+                Output += "Only one file upload is allowed.";
+                break;
+            }
+            (valid, fileBytes) = await GetFile(file);
+        }
+
+        foreach (var file in await dropReference.EnumerateFilesAsync())
+        {
+            i++;
+            if (i > 1)
+            {
+                valid = false;
+                Output += "Only one file upload is allowed.";
+                break;
+            }
+            (valid, fileBytes) = await GetFile(file);
+        }
+
+
+        if (i == 0)
+        {
+            Output = "Pelase select one file.";
+            return;
+        }
+        if (valid == true && _mm != null)
+        {
+            await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
+            Output += "Decoding replay..." + Environment.NewLine;
+            _mms.InfoBadge = "badge-info";
+            _mms.InfoBadgeMsg = "Decoding ..";
+            StateHasChanged();
+            dsreplay replay = await _repserv.Decode(upRep, _mms.RepID);
+            Output += "Reporting replay .." + Environment.NewLine;
+            _mms.InfoBadge = "badge-info";
+            _mms.InfoBadgeMsg = "Reporting ..";
+            StateHasChanged();
+            int quality = await _repserv.CheckValid(replay, _mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault());
+            if (!_mm.Reports.ContainsKey(replay.ID))
+            {
+                MMgameNG report;
+                MMgameNG racereport;
+                (report, racereport) = await Task.Run(() => { return MMrating.RateGame(replay, _startUp, _mm.Games.Where(x => x.ID == replay.ID).FirstOrDefault().Lobby); });
+                if (report != null)
+                {
+                    report.ID = _mms.RepID;
+                    //report.Valid = await _repserv.CheckValid(replay, report);
+                    report.Valid = quality;
+                    _mm.Reports[replay.ID] = report;
+                    _mms.InfoBadge = "badge-success";
+                    _mms.InfoBadgeMsg = "Reported";
+                    await _repserv.Save(report);
+                    if (racereport != null)
+                        await _repserv.SaveRace(racereport);
+                }
+                else
+                {
+                    _mms.InfoBadge = "badge-danger";
+                    _mms.InfoBadgeMsg = "Report failed";
+                }
+            }
+            else
+            {
+                if (quality > _mm.Reports[_mms.RepID].Valid)
+                {
+
+                }
+                _mms.InfoBadge = "badge-success";
+                _mms.InfoBadgeMsg = "Reported";
+            }
+            _mms.ReportIsClicked = false;
+            _state.Update = !_state.Update;
+        }
+    }
+
+    async Task<(bool, ConcurrentDictionary<int, byte[]>)> GetFile(IFileReference file)
+    {
+        ConcurrentDictionary<int, byte[]> fileBytes = new ConcurrentDictionary<int, byte[]>();
+        bool valid = true;
+        var nl = Environment.NewLine;
+        var fileInfo = await file.ReadFileInfoAsync();
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Name)}: {fileInfo.Name}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Size)}: {fileInfo.Size}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Type)}: {fileInfo.Type}{nl}";
+        Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.LastModifiedDate)}: {fileInfo.LastModifiedDate?.ToString() ?? "(N/A)"}{nl}";
+        Output += $"Reading file...";
+        this.StateHasChanged();
+
+        // 10 MB
+        if (fileInfo.Size > 10485760)
+        {
+            Output += "File size exceeds limit.";
+            valid = false;
+        }
+        TimeSpan t = new TimeSpan();
+        t = DateTime.Now - Convert.ToDateTime(fileInfo.LastModifiedDate);
+        t = t.Duration();
+        if (t.Days > 1)
+        {
+            Output += "Not a valid replay.";
+            valid = false;
+        }
+
+
+        using (var fs = await file.OpenReadAsync())
+        {
+            var bufferSize = 4096;
+            var buffer = new byte[bufferSize];
+            int count;
+            int j = 0;
+            while ((count = await fs.ReadAsync(buffer, 0, buffer.Length)) != 0)
+            {
+
+                fileBytes[j] = buffer.ToArray();
+                Output += $"Read {count} bytes. {fs.Position} / {fs.Length}{nl}";
+
+                if (j == 0)
+                {
+                    if (buffer[0] != 77 || buffer[1] != 80 || buffer[2] != 81)
+                    {
+                        Output += "Not a valid replay.";
+                        valid = false;
+                        break;
+                    }
+
+                }
+                Interlocked.Increment(ref j);
+                this.StateHasChanged();
+            }
+            Output += $"Done reading file {fileInfo.Name}{nl}.";
+        }
+        this.StateHasChanged();
+        return (valid, fileBytes);
+    }
+
+    void Close()
+    {
+        _mms.ReportIsClicked = false;
+        _state.Update = !_state.Update;
+    }
+
+    public static byte[] Concat(params byte[][] arrays)
+    {
+        using (var mem = new MemoryStream(arrays.Sum(a => a.Length)))
+        {
+            foreach (var array in arrays)
+            {
+                mem.Write(array, 0, array.Length);
+            }
+            return mem.ToArray();
+        }
+    }
+}

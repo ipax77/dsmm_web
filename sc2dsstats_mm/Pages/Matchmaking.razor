@@ -1,0 +1,690 @@
+﻿@page "/mm"
+@using sc2dsstats.Models;
+@using DSmm.Models;
+@using dsmm_server.Data;
+@using dsmm_server.Models;
+@using System.ComponentModel;
+@using DSmm.Repositories;
+@using System.Text.RegularExpressions;
+@inject IMMrepositoryNG _mm
+@inject MMserviceNG _mms
+@inject AuthenticationStateProvider _auth
+@inject StartUp _startUp
+@inject ScanStateChange _state
+@inject MMdb  _mmdb
+@implements IDisposable
+
+<h3>Matchmaking</h3>
+<br />
+@if (Player.Credential == false)
+{
+    <div class="row">
+        <div class="custom-control custom-checkbox w-25">
+            <input type="checkbox" class="custom-control-input" name="cb_mm_credential" id="cb_mm_credential" @bind="Player.Credential" />
+            <label class="custom-control-label" for="cb_mm_credential">Allow Matchmaking</label>
+        </div>
+        <div class="w-auto">
+            <label>
+                By using this matchmaking system you agree, that your SC2-username and skill information will be stored to generate the games
+                and show rankings on <a href="https://www.pax77.org/dsweb/ladder">https://www.pax77.org/dsweb/ladder</a>.
+                <br />
+                The data will not be used for any other purpose and will not be disclosed to third parties.
+                You can decline to the agreement at any time by unchecking the Credential and delete all data with the <a href="Identity/Account/Manage/PersonalData">Deleteme</a> button.
+            </label>
+        </div>
+    </div>
+}
+else if (Player.Deleted == true)
+{
+    <div class="jumbotron">
+        Deleted. You will be able to rejoin the mm-system in @(_mms.MMDel - 3) days.
+    </div>
+}
+else if (Player.Name == "")
+{
+    <h5>Please enter your ingame Starcraft2 Player name e.g. shown in the loading screen of Direct Strike</h5>
+    <div class="form-group">
+        <label for="player_temp">
+            Player
+        </label>
+        <input type="text" name="Players" id="player_temp" @bind="_mms.temp_Playername" class="w-75" />
+    </div>
+    <button class="btn btn-primary mb-2" @onclick="@Save">Save</button>
+    <div class="mb-3">
+        @if (_mms.Failed == true)
+        {
+            <span class="badge badge-danger">
+                Saving failed. Please check your Playername.
+            </span>
+            <p>@_mms.Error</p>
+        }
+        else if (_mms.Saved == true)
+        {
+            <span class="badge badge-success">
+                Settings successfully saved.
+            </span>
+        }
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <div class="row">
+            <div>
+                <div class="btn-group-vertical" role="group">
+                    <button class="btn btn-primary btn-sm mb-2" disabled="@_mms.isFindDisabled" @onclick="@Findgame">Find game</button>
+                    <button class="btn btn-primary btn-sm mb-2" @onclick="@Reportgame">Report game</button>
+                    <button class="btn btn-primary btn-sm mb-2" @onclick="@Exitfind">Exit</button>
+                    <!---<button class="btn btn-primary btn-sm mb-2" @onclick="@(() => StateHasChanged())">Refresh</button>-->
+                </div>
+                <div class="d-flex flex-column">
+                    <label for="mymu">My rating:</label>
+                    <h4>
+                        <span class="badge badge-info border border-info mr-2" style="min-width: 75px;" id="mymu">
+                            @Math.Round(Player.Rating[Player.Mode + Player.Mode2 + Player.Ladder].EXP, 2)
+                        </span>
+                    </h4>
+                </div>
+            </div>
+            <div>
+                <form class="form-inline ml-4">
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="ip_playername" class="control-label">
+                                Player:
+                            </label>
+                            <input disabled="@_mms.isFindDisabled" type="text" class="form-control" name="ip_playername" id="ip_playername" @bind="Player.Name" />
+                        </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="semode" class="control-label">
+                                Mode:
+                            </label>
+                            <div>
+                                <select disabled="@_mms.isFindDisabled" id="semode" class="form-control" @bind="@Player.Mode">
+                                    <option selected="selected">Commander</option>
+                                    <option>Standard</option>
+                                </select>
+                                <select disabled="@_mms.isFindDisabled" id="semode2" class="form-control" @bind="@Player.Mode2">
+                                    <option selected="selected">3v3</option>
+                                    <option>2v2</option>
+                                    <option>1v1</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="seserver" class="control-label">
+                                Server:
+                            </label>
+                            <div>
+                                <select disabled="@_mms.isFindDisabled" id="seserver" class="form-control" @bind="@Player.Server">
+                                    <option selected="selected">NA</option>
+                                    <option>EU</option>
+                                    <option>KOR</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mr-2">
+                        <input type="checkbox" checked="@Player.Ladder" />
+                        <button disabled="@_mms.isFindDisabled" type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
+                            Ladder
+                        </button>
+                    </div>
+                    <div class="form-group mr-2 @_mms.RandomIsDisabled">
+                        <input type="checkbox" checked="@Player.Random" />
+                        <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
+                            allow Randoms
+                        </button>
+                    </div>
+                </form>
+                <br />
+                <div class="row ml-5">
+                    <div>
+                        <h4>
+                            <span class="badge @_mms.InfoBadge border border-info mr-2">
+                                @_mms.InfoBadgeMsg
+                            </span>
+                        </h4>
+                    </div>
+                    <div>
+                        <h4>
+                            <span class="badge badge-secondary border border-info mr-2">
+                                @_mms._time.ToString(@"hh\:mm\:ss")
+                            </span>
+                        </h4>
+                    </div>
+                </div>
+                <div style="max-width: 579px;">
+                    <div class="jumbotron">
+                        @_mms.Info
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div>
+        @if (_mms.ReportIsClicked == true)
+        {
+            <Report _mms="_mms" _pl="Player" />
+        }
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-auto">
+                <form>
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="mmid" class="control-label">MMID:</label>
+                            <h4>
+                                <span class="badge badge-light" style="min-width: 50px;" id="mmid">
+                                    @Player.Game.ID
+                                </span>
+                            </h4>
+                        </div>
+                    </div>
+
+                    <div class="form-group mr-2">
+                        <div class="d-flex flex-column">
+                            <label for="gameserver" class="control-label">Server:</label>
+                            <h4>
+                                <span class="badge badge-light" style="min-width: 50px;" id="gameserver">
+                                    @Player.Game.Server
+                                </span>
+                            </h4>
+                        </div>
+                    </div>
+                    <br />
+                </form>
+            </div>
+            <div class="col-auto">
+                <h5>Team1</h5>
+                <table class="table table-sm table-dark table-hover">
+                    <thead>
+                        @if (_mms.RepID == 0)
+                        {
+                            <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        }
+                        else
+                        {
+                            <tr><th>Name</th><th>Exp</th><th>ExpChange</th></tr>
+                        }
+                    </thead>
+                    <tbody>
+                        @if (_mms.RepID == 0)
+                        {
+                            @for (int i = 0; i < 3; i++)
+                            {
+                                <tr>
+                                    <td>Player @(i + 1)</td>
+                                    @if (Player.Game.Accepted == true && Player.Game.Team1 != null && Player.Game.Team1.Count > i)
+                                    {
+                                        <td>@Player.Game.Team1[i].Name</td>
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                    }
+                                    <td></td>
+                                </tr>
+                            }
+                        }
+                        else if (_mm.Reports.ContainsKey(_mms.RepID))
+                        {
+                            @foreach (var pl in _mm.Reports[_mms.RepID].Team1)
+                            {
+                                <tr>
+                                    <td>@pl.Name</td>
+                                    <td><h5><span class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</span></h5></td>
+                                    @if (pl.ExpChange < 0)
+                                    {
+                                        <td><h5><span class="badge badge-danger" style="min-width: 70px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+                                    else
+                                    {
+                                        <td><h5><span class="badge badge-success" style="min-width: 70px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-auto">
+                <h5>Team2</h5>
+                <table class="table table-sm table-dark table-hover">
+                    <thead>
+                        @if (_mms.RepID == 0)
+                        {
+                            <tr><th>Player</th><th>Name</th><th>Exp</th></tr>
+                        }
+                        else
+                        {
+                            <tr><th>Name</th><th>Exp</th><th>ExpChange</th></tr>
+                        }
+                    </thead>
+                    <tbody>
+                        @if (_mms.RepID == 0)
+                        {
+                            @for (int i = 0; i < 3; i++)
+                            {
+                                <tr>
+                                    <td>Player @(i + 1 + 3)</td>
+                                    @if (Player.Game.Accepted == true && Player.Game.Team2 != null && Player.Game.Team2.Count > i)
+                                    {
+                                        <td>@Player.Game.Team2[i].Name</td>
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                    }
+                                </tr>
+                            }
+                        }
+                        else if (_mm.Reports.ContainsKey(_mms.RepID))
+                        {
+                            @foreach (var pl in _mm.Reports[_mms.RepID].Team2)
+                            {
+                                <tr>
+                                    <td>@pl.Name</td>
+                                    <td><h5><spann class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</spann></h5></td>
+                                    @if (pl.ExpChange < 0)
+                                    {
+                                        <td><h5><span class="badge badge-danger" style="min-width: 80px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+                                    else
+                                    {
+                                        <td><h5><span class="badge badge-success" style="min-width: 80px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
+                                    }
+
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-auto">
+                <div class="d-flex flex-column">
+                    <h4>Lobby</h4>
+                    <table class="table table-sm table-dark table-hover">
+                        <thead>
+                            <tr><th>Name</th><th>Accepted</th><th>Random</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ent in Player.Lobby)
+                            {
+                                <tr>
+                                    <td>@ent.Name</td>
+                                    <td>@ent.Accepted</td>
+                                    <td>@ent.Random</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br />
+    @if (Player.Game.ID > 0 && Player.Game.Accepted == false)
+    {
+        <div class="d-none">
+            <audio controls autoplay>
+                <source src="audio/ready.wav" type="audio/mpeg">
+            </audio>
+        </div>
+        <div class="mb-2">
+            <button type="button" class="btn btn-success mt-1 mr-2" disabled="@_mms.isAcceptDisabled" @onclick="@Acceptgame">Accept</button>
+            <button type="button" class="btn btn-danger btn-sm mt-1 mr-2" disabled="@_mms.isDeclinedDisabled" @onclick="@Declinegame">decline</button>
+            <div class="row mt-2 mb-2">
+                @foreach (var pl in Player.Game.GetPlayers())
+                {
+                    <div class="col-auto">
+                        @if (pl.Accepted == true)
+                        {
+                            <h4><span class="badge badge-success" style="min-width: 55px;">@pl.Name</span></h4>
+                        }
+                        else if (pl.Declined == true)
+                        {
+                            <h4><span class="badge badge-danger">@pl.Name</span></h4>
+                        }
+                        else
+                        {
+                            <h4><span class="badge badge-warning">@pl.Name</span></h4>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="jumbotron w-75">
+                <h5>Game Found!</h5>
+                <div class="ml-2" id="div_progbargf">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped" role="progressbar"
+                             style="width: @((int)_mms.Done)%" aria-valuenow=@_mms.Done
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+
+                </div>
+                @if (Player.Accepted == true)
+                {
+                    <div>
+                        TY! Waiting for the other players to accept ..
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    <br />
+    @if (_mms.RepID > 0 && _startUp.replays.ContainsKey(_mms.RepID) && _startUp.replays[_mms.RepID].Count() > 0)
+    {
+        <div class="container-fluid">
+            <Game replay="@_startUp.replays[_mms.RepID].FirstOrDefault()" _pl="@Player" />
+        </div>
+    }
+}
+
+
+@code {
+    MMplayerNG Player = new MMplayerNG();
+    dsreplay replay;
+    string AuthName = "";
+
+    TimeSpan _time { get; set; } = new TimeSpan(0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await _auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        AuthName = user.Identity.Name;
+        if (user.Identity.IsAuthenticated)
+        {
+            //if (_startUp.MMplayers.ContainsKey(user.Identity.Name))
+            if (_startUp.Auth.ContainsKey(user.Identity.Name))
+            {
+                string name = _startUp.Auth[user.Identity.Name];
+                Player = _startUp.MMplayers[name];
+            }
+        }
+
+        //debug
+        Player.Credential = true;
+        Player.Name = "bab";
+
+        try
+        {
+            MMgameNG temp = new MMgameNG();
+            _mm.Reports.Remove(1006, out temp);
+            List<dsreplay>
+    reps = new List<dsreplay>
+        ();
+        _startUp.replays.Remove(1006, out reps);
+        }
+        catch { }
+
+        // end debug
+
+
+        _state.PropertyChanged += StateUpdate;
+        }
+
+
+        private void StateUpdate(object sender, PropertyChangedEventArgs e)
+        {
+        InvokeAsync(() => StateHasChanged());
+        }
+
+        async Task Save()
+        {
+
+        if (!CheckName(_mms.temp_Playername))
+        return;
+
+        if (_startUp.Players.Contains(_mms.temp_Playername))
+        {
+        _mms.Failed = true;
+        _mms.Error = "Player already used. Please login to use this ID.";
+        return;
+        }
+
+        _mms.Failed = false;
+        _mms.Saved = true;
+        Player.Name = _mms.temp_Playername;
+        if (_startUp.MMplayers.ContainsKey(Player.Name))
+        Player = _startUp.MMplayers[Player.Name];
+        else
+        _startUp.MMplayers.TryAdd(Player.Name, Player);
+        Player.Credential = true;
+        Player.AuthName = AuthName;
+        if (AuthName != null && AuthName != "")
+        {
+        _startUp.Players.Add(Player.Name);
+        _startUp.Auth[AuthName] = Player.Name;
+        }
+        await _startUp.Save();
+        }
+
+        bool CheckName(string name)
+        {
+        if (name.Length <= 2)
+        {
+        _mms.Failed = true;
+        _mms.Error = "Not a valid Starcraft2 playername.";
+        return false;
+        }
+
+        if (name.Length > 64)
+        {
+        _mms.Failed = true;
+        _mms.Error = "Not a valid Starcraft2 playername.";
+        return false;
+        }
+
+        if (Regex.Escape(name) != name)
+        {
+        _mms.Failed = true;
+        _mms.Error = "Not a valid Starcraft2 playername.";
+        return false;
+        }
+
+        return true;
+        }
+
+        async Task Findgame()
+        {
+        if (!CheckName(Player.Name))
+        {
+        _mms.InfoBadge = "badge-danger";
+        _mms.InfoBadgeMsg = "Invalid Name";
+        return;
+        }
+        if (AuthName != null && AuthName != "")
+        {
+        _startUp.Players.Add(Player.Name);
+        _startUp.Auth[AuthName] = Player.Name;
+        }
+        _time = new TimeSpan(0);
+        _mms.RepID = 0;
+        _mms.RepSelDisabled = true;
+        _mms.ReportIsClicked = false;
+        _mms.isFindDisabled = true;
+        _mms.isAcceptDisabled = false;
+        _mms.isDeclinedDisabled = false;
+        _mms.AllowRandoms = false;
+        _mms.RandomIsDisabled = "d-none";
+        Player = await _mm.LetmePlay(Player);
+        SetTimer();
+        Player.DBupdate = true;
+        await _startUp.Save();
+        Player.DBupdate = false;
+        _mms.InfoBadge = "badge-warning";
+        _mms.InfoBadgeMsg = "Searching";
+        }
+
+        void Randoms()
+        {
+        Player.Random = !Player.Random;
+        }
+
+        void LadderClick()
+        {
+        Player.Ladder = !Player.Ladder;
+        }
+
+        void Reportgame()
+        {
+        if (_mms.isFindDisabled == true) return;
+        _mms.Info = "To report a game please upload the propper Direct Strike Replay. TY!";
+        _mms.RepID = Player.Game.ID;
+        _mms.isFindDisabled = false;
+        _mms.RepSelDisabled = false;
+        _mms.ReportIsClicked = !_mms.ReportIsClicked;
+        }
+
+        void Exitfind()
+        {
+        _mms.isFindDisabled = false;
+        _mm.ExitQ(Player.Name);
+        StopTimer();
+        _mms.InfoBadge = "badge-secondary";
+        _mms.InfoBadgeMsg = "Offline";
+        }
+
+        void Gamefound()
+        {
+        _mms.GAMEFOUND = true;
+        _mms.Info = "Game found!";
+        }
+
+        void Acceptgame()
+        {
+        _mms.isAcceptDisabled = true;
+        _mms.isDeclinedDisabled = true;
+        _mm.Accept(Player.Name, Player.Game.ID);
+
+        _mms.Info = "Game accepted! Waiting for other players ..";
+        }
+
+        void Declinegame()
+        {
+        _mm.Decline(Player.Name, Player.Game.ID);
+        _mms.Info = "Game declined. :(";
+        _mms.InfoBadge = "badge-secondary";
+        _mms.InfoBadgeMsg = "Offline";
+        StopTimer();
+        }
+
+        void GameInfo()
+        {
+        string mypos = "";
+        string creator = "Player1";
+
+        int j = 0;
+        int games = 0;
+        string mmid = Player.Game.ID.ToString();
+        string lobby = Player.Mode + Player.Mode2 + Player.Ladder;
+        foreach (var pl in Player.Game.GetPlayers())
+        {
+        j++;
+        if (pl.Name == Player.Name) mypos = "Player" + j;
+        if (pl.Rating[lobby].Games > games)
+        {
+        creator = "Player" + j;
+        games = pl.Rating[lobby].Games;
+        }
+        }
+
+        if (creator == mypos.ToString())
+        {
+        _mms.Info = "Game found! You have been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and create a private Direct Strike Lobby. " +
+        "Join the Channel sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat and post the lobby link combined with the MMID by typing \"/lobbylink " +
+        mmid + "\" (without the quotes). Have fun! :)";
+        }
+        else
+        {
+        _mms.Info = "Game found! Player " + creator + " has been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and join the Channel" +
+        " sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat. Wait for the lobby link combined with the MMID " +
+        mmid + " and click on it. Have fun! :)";
+        }
+        }
+
+        public void SetTimer()
+        {
+        _mms._time = new TimeSpan(0);
+        // Create a timer with a two second interval.
+        _mms.aTimer = new System.Timers.Timer(2000);
+        // Hook up the Elapsed event for the timer.
+        _mms.aTimer.Elapsed += async (sender, e) => await HandleTimer();
+        _mms.aTimer.AutoReset = true;
+        _mms.aTimer.Enabled = true;
+        }
+
+        public void StopTimer()
+        {
+        try
+        {
+        _mms.aTimer.Stop();
+        _mms.aTimer.Elapsed -= async (sender, e) => await HandleTimer();
+        _mms.aTimer.Dispose();
+        }
+        catch { }
+        }
+
+        private async Task HandleTimer()
+        {
+
+        if (_mms.AllowRandoms == false && _mms._time.TotalMinutes > 1)
+        {
+        _mms.AllowRandoms = true;
+        _mms.RandomIsDisabled = "";
+        _mms.Info = "You can fill your lobby with randoms now if you want (check 'allow Randoms' top right)";
+        }
+
+        if (Player.Notify == true)
+        {
+        lock (Player)
+        {
+        if (Player.Game.Declined == true)
+        {
+        _mms.Info = "Game declined - searching again.";
+        }
+        else if (Player.Game.Accepted == true)
+        {
+        _mms.InfoBadge = "badge-success";
+        _mms.InfoBadgeMsg = "Game accepted!";
+        Player.Lobby.Clear();
+        GameInfo();
+        StopTimer();
+        }
+        else if (Player.Game.ID > 0)
+        {
+        _mms.InfoBadge = "badge-primary";
+        _mms.InfoBadgeMsg = "Game found!";
+        Player.Ticks = 0;
+        }
+        Player.Notify = false;
+        }
+        if (Player.Game.Declined == true && Player.Declined == false && Player.Accepted == true)
+        await Findgame();
+        }
+
+        Player.Ticks++;
+
+        _mms._time = _mms._time.Add(TimeSpan.FromSeconds(2));
+        await InvokeAsync(() => StateHasChanged());
+        }
+
+        public void Dispose()
+        {
+        _state.PropertyChanged -= StateUpdate;
+        _mm.ExitQ(Player.Name);
+        StopTimer();
+        }
+
+        }
