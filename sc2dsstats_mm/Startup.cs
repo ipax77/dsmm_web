@@ -38,9 +38,9 @@ namespace sc2dsstats_mm
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=/data/app.db"));
+            services.AddDefaultIdentity<IdentityUser>()
+                .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddDbContext<MMdb>(options => options.UseSqlite("Data Source=/data/mm.db"));
             var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
             optionsBuilder.UseSqlite("Data Source=/data/mm.db");
