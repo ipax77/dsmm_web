@@ -44,8 +44,6 @@ namespace sc2dsstats_mm
             services.AddDbContext<MMdb>(options => options.UseSqlite("Data Source=/data/mm.db"));
             var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
             optionsBuilder.UseSqlite("Data Source=/data/mm.db");
-            services.AddDefaultIdentity<IdentityUser>()
-                .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider<IdentityUser>>();
