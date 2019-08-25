@@ -37,7 +37,7 @@ namespace DSmm.Repositories
 
 
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
-        private static string WorkDir { get; } = "/data";
+        private static string WorkDir { get; } = sc2dsstats_mm.Program.workdir;
         public static string data_json = WorkDir + "/mmplayer.json";
 
         static Regex rx_pl = new Regex(@"^\(([^\(]+)(.*)");

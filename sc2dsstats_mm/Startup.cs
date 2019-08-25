@@ -42,8 +42,6 @@ namespace sc2dsstats_mm
             services.AddDefaultIdentity<IdentityUser>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddDbContext<MMdb>(options => options.UseSqlite("Data Source=/data/mm.db"));
-            var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
-            optionsBuilder.UseSqlite("Data Source=/data/mm.db");
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, RevalidatingAuthenticationStateProvider<IdentityUser>>();
@@ -59,14 +57,23 @@ namespace sc2dsstats_mm
             services.Configure<AppConfig>(Configuration);
             services.AddSingleton<IMMrepository, MMrepository>();
             services.AddSingleton<IMMrepositoryNG, MMrepositoryNG>();
-            services.AddSingleton(new StartUp(optionsBuilder.Options));
 
 
+            var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
+            optionsBuilder.UseSqlite("Data Source=/data/mm.db");
+            services.AddSingleton<StartUp>((prov) => new StartUp(optionsBuilder.Options));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            //ensure games folder exists
+            var gamesDir = Program.workdir + "/games";
+            if (!System.IO.Directory.Exists(gamesDir))
+                System.IO.Directory.CreateDirectory(gamesDir);
+
+            UpdateDatabase(app);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -93,6 +100,20 @@ namespace sc2dsstats_mm
                 endpoints.MapBlazorHub<App>(selector: "app");
                 endpoints.MapFallbackToPage("/_Host");
             });
+        }
+
+        private void UpdateDatabase(IApplicationBuilder app)
+        {
+            using (var serviceScope = app
+                    .ApplicationServices
+                    .GetRequiredService<IServiceScopeFactory>()
+                    .CreateScope())
+            {
+                using (var context = serviceScope.ServiceProvider.GetService<MMdb>())
+                {
+                    context.Database.Migrate();
+                }
+            }
         }
     }
 }
