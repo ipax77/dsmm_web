@@ -1,0 +1,144 @@
+﻿@page "/playerchart"
+@using DSmm.Models;
+@using dsmm_server.Data;
+@using sc2dsstats.Models;
+@using sc2dsstats.Data;
+@using System.Threading;
+@inject StartUp _startUp
+@inject GameChartService _chart
+<head>
+    <style>
+        canvas {
+            background-color: whitesmoke;
+        }
+    </style>
+</head>
+@if (Player != null)
+{
+    @if (Player.Name != Name)
+    {
+        <div class="d-none">
+            @NewPlayer()
+        </div>
+    }
+    <div class="container-fluid">
+        <div class="row">
+            <div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox"
+                           class="custom-control-input"
+                           name="cb_rat"
+                           checked="@RatingChecked["EXP"]"
+                           id="cb_exp"
+                           @onchange="@(() => ShowEXP("EXP"))" />
+                    <label class=" custom-control-label" for="cb_exp">
+                        EXP
+                    </label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox"
+                           class="custom-control-input"
+                           name="cb_rat"
+                           checked="@RatingChecked["MU"]"
+                           id="cb_MU"
+                           @onchange="@(() => ShowEXP("MU"))" />
+                    <label class=" custom-control-label" for="cb_MU">
+                        MU
+                    </label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox"
+                           class="custom-control-input"
+                           name="cb_rat"
+                           checked="@RatingChecked["SIGMA"]"
+                           id="cb_SIGMA"
+                           @onchange="@(() => ShowEXP("SIGMA"))" />
+                    <label class=" custom-control-label" for="cb_SIGMA">
+                        SIGMA
+                    </label>
+                </div>
+            </div>
+            <div class="w-100">
+                @if (loading == true)
+                {
+                    <h4>Loading ...</h4>
+                }
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public MMplayerNG Player { get; set; }
+    [Parameter]
+    public string Lobby { get; set; }
+
+    bool showChart = false;
+    bool loading = true;
+    ChartJS mychart;
+    Dictionary<string, bool> RatingChecked = new Dictionary<string, bool>()
+{
+        { "EXP", false },
+        { "MU", false },
+        { "SIGMA", false }
+    };
+    string Name;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Player == null)
+        {
+            Player = _startUp.MMplayers.Values.Where(x => x.Name == "Ragggy").FirstOrDefault();
+            Lobby = "Commander3v3True";
+        }
+        Name = Player.Name;
+        await ShowEXP("EXP");
+    }
+
+    async Task NewPlayer()
+    {
+        Name = Player.Name;
+        foreach (var ent in RatingChecked.Keys.ToArray())
+            RatingChecked[ent] = false;
+
+        mychart = null;
+        await ShowEXP("EXP");
+    }
+
+    async Task ShowEXP(string rat)
+    {
+        RatingChecked[rat] = !RatingChecked[rat];
+        loading = true;
+        if (RatingChecked[rat] == true)
+        {
+            if (mychart == null)
+            {
+                mychart = await _chart.GetChartBase();
+                mychart.options.title.text = "Rating";
+                List<string> labels = new List<string>();
+
+                foreach (var ent in Player.Rating[Lobby].OrderBy(o => o.Games))
+                    labels.Add(ent.Time.ToShortDateString() + " (" + ent.Games + ")");
+
+                mychart.data.labels = labels.ToArray();
+                await _chart.DrawChart(mychart);
+            }
+            List<double> wr = new List<double>();
+            foreach (var ent in Player.Rating[Lobby].OrderBy(o => o.Games))
+                wr.Add(Double.Parse(ent.GetType().GetProperty(rat).GetValue(ent, null).ToString()));
+
+            ChartJSdataset dataset = new ChartJSdataset();
+            dataset.label = Player.Name + " " + rat;
+            dataset.data = wr.ToArray();
+            mychart = await _chart.AddDataset(dataset);
+        }
+        else
+            mychart = await _chart.RemoveDataset(Player.Name + " " + rat);
+
+        loading = false;
+        StateHasChanged();
+    }
+
+}

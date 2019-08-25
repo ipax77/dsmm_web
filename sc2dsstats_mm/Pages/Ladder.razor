@@ -3,6 +3,7 @@
 @using DSmm.Repositories;
 @using  dsmm_server.Data;
 @using sc2dsstats.Data;
+@using DSmm.Models;
 @inject IMMrepositoryNG _mm
 @inject StartUp _startUp
 
@@ -23,7 +24,7 @@
 </div>
 <br />
 <button class="btn btn-primary" @onclick="GetLadder">Refresh</button>
-<div class="container">
+<div class="container-fluid">
     <form class="form-inline ml-4">
         <div class="form-group mr-2">
             <div class="d-flex flex-column">
@@ -72,9 +73,9 @@
                         {
                             continue;
                         }
-                        <tr>
+                        <tr class="table-row" @onclick="@(() => ShowDetails(@ent))">
                             <td>@(i++)</td>
-                            <td>@ent.Name</td>
+                            <td class="sort-link">@ent.Name</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().EXP, 2)</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().MU, 2)</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().SIGMA, 2)</td>
@@ -108,9 +109,9 @@
                         {
                             continue;
                         }
-                        <tr>
+                        <tr class="table-row" @onclick="@(() => ShowDetails(@ent))">
                             <td>@(j++)</td>
-                            <td>@ent.Name</td>
+                            <td class="sort-link">@ent.Name</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().EXP, 2)</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().MU, 2)</td>
                             <td>@Math.Round(ent.Rating[Mode + Mode2 + isLadder].LastOrDefault().SIGMA, 2)</td>
@@ -120,6 +121,12 @@
                 </tbody>
             </table>
         </div>
+        @if (Details == true)
+        {
+        <div class="ml-3 col-lg">
+            <PlayerChart Player="Player" Lobby="@(Mode + Mode2 + isLadder)" />
+        </div>
+        }
     </div>
 </div>
 <br />
@@ -132,12 +139,21 @@
     string Mode2 = "3v3";
     bool isLadder = true;
     string Lobby;
+    bool Details = false;
+    MMplayerNG Player;
 
     protected override async Task OnInitializedAsync()
     {
         CultureInfo.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
         Lobby = Mode + Mode2 + Lobby;
         //await _mm.GetLadder();
+    }
+
+    void ShowDetails(MMplayerNG player)
+    {
+        Player = player;
+        Details = true;
+
     }
 
     void LadderClick()
