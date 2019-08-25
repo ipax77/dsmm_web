@@ -60,6 +60,7 @@ namespace sc2dsstats_mm.Migrations
                     MU = table.Column<double>(nullable: false),
                     SIGMA = table.Column<double>(nullable: false),
                     Games = table.Column<int>(nullable: false),
+                    Time = table.Column<DateTime>(nullable: false),
                     MMdbPlayerId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
@@ -84,6 +85,7 @@ namespace sc2dsstats_mm.Migrations
                     MU = table.Column<double>(nullable: false),
                     SIGMA = table.Column<double>(nullable: false),
                     Games = table.Column<int>(nullable: false),
+                    Time = table.Column<DateTime>(nullable: false),
                     MMdbRaceId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>

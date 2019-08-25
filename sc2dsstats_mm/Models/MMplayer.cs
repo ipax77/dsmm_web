@@ -1,5 +1,6 @@
 ﻿using dsmm_server.Data;
 using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -171,6 +172,8 @@ namespace DSmm.Models
         public double MU { get; set; } = 25;
         public double SIGMA { get; set; } = 25 / 3;
         public int Games { get; set; } = 0;
+        public bool Db { get; set; } = false;
+        public DateTime Time { get; set; } = DateTime.UtcNow;
 
         public MMPlRating()
         {
@@ -183,6 +186,8 @@ namespace DSmm.Models
             MU = dbrat.MU;
             SIGMA = dbrat.SIGMA;
             Games = dbrat.Games;
+            Db = true;
+            Time = dbrat.Time;
         }
 
         public MMPlRating(MMdbRaceRating dbrat) : this()
@@ -191,6 +196,13 @@ namespace DSmm.Models
             MU = dbrat.MU;
             SIGMA = dbrat.SIGMA;
             Games = dbrat.Games;
+            Db = true;
+            Time = dbrat.Time;
+        }
+
+        public MMPlRating ShallowCopy()
+        {
+            return (MMPlRating)this.MemberwiseClone();
         }
     }
 
@@ -219,25 +231,28 @@ namespace DSmm.Models
         public bool Deleted { get; set; } = false;
         public DateTime MMDeleted { get; set; } = new DateTime(2018, 1, 1);
         public double ExpChange { get; set; } = 0;
-        public Dictionary<string, MMPlRating> Rating = new Dictionary<string, MMPlRating>()
+        public Dictionary<string, List<MMPlRating>> Rating = new Dictionary<string, List<MMPlRating>>()
         {
-            { "Commander3v3True", new MMPlRating() },
-            { "Commander2v2True", new MMPlRating() },
-            { "Commander1v1True", new MMPlRating() },
-            { "Standard3v3True", new MMPlRating() },
-            { "Standard2v2True", new MMPlRating() },
-            { "Standard1v1True", new MMPlRating() },
-            { "Commander3v3False", new MMPlRating() },
-            { "Commander2v2False", new MMPlRating() },
-            { "Commander1v1False", new MMPlRating() },
-            { "Standard3v3False", new MMPlRating() },
-            { "Standard2v2False", new MMPlRating() },
-            { "Standard1v1False", new MMPlRating() }
+            { "Commander3v3True", new List<MMPlRating>() },
+            { "Commander2v2True", new List<MMPlRating>() },
+            { "Commander1v1True", new List<MMPlRating>() },
+            { "Standard3v3True", new List<MMPlRating>() },
+            { "Standard2v2True", new List<MMPlRating>() },
+            { "Standard1v1True", new List<MMPlRating>() },
+            { "Commander3v3False", new List<MMPlRating>() },
+            { "Commander2v2False", new List<MMPlRating>() },
+            { "Commander1v1False", new List<MMPlRating>() },
+            { "Standard3v3False", new List<MMPlRating>() },
+            { "Standard2v2False", new List<MMPlRating>() },
+            { "Standard1v1False", new List<MMPlRating>() }
         };
 
         public MMplayerNG()
         {
-
+            foreach (var ent in Rating)
+            {
+                ent.Value.Add(new MMPlRating());
+            }
         }
 
         public MMplayerNG(string name) : this()
@@ -258,13 +273,16 @@ namespace DSmm.Models
             Deleted = pl.Deleted;
             MMDeleted = pl.MMDeleted;
             if (pl.MMdbRatings != null) {
-                foreach (MMdbRating rat in pl.MMdbRatings)
+                foreach (MMdbRating rat in pl.MMdbRatings.OrderBy(o => o.Time))
                 {
-                    var mrat = Rating[rat.Lobby];
+                    var mrat = new MMPlRating();
                     mrat.EXP = rat.EXP;
                     mrat.Games = rat.Games;
                     mrat.MU = rat.MU;
                     mrat.SIGMA = rat.SIGMA;
+                    mrat.Db = true;
+                    mrat.Time = rat.Time;
+                    Rating[rat.Lobby].Add(mrat);
                 }
             }
         }
@@ -285,11 +303,14 @@ namespace DSmm.Models
             {
                 foreach (MMdbRaceRating rat in pl.MMdbRaceRatings)
                 {
-                    var mrat = Rating[rat.Lobby];
+                    var mrat = new MMPlRating();
                     mrat.EXP = rat.EXP;
                     mrat.Games = rat.Games;
                     mrat.MU = rat.MU;
                     mrat.SIGMA = rat.SIGMA;
+                    mrat.Db = true;
+                    mrat.Time = rat.Time;
+                    Rating[rat.Lobby].Add(mrat);
                 }
             }
         }

@@ -121,6 +121,7 @@ namespace dsmm_server.Data
         public double MU { get; set; } = 25;
         public double SIGMA { get; set; } = 25 / 3;
         public int Games { get; set; } = 0;
+        public DateTime Time { get; set; }
 
         public int MMdbPlayerId { get; set; }
         public MMdbPlayer MMdbPlayer { get; set; }
@@ -134,6 +135,7 @@ namespace dsmm_server.Data
         public double MU { get; set; } = 25;
         public double SIGMA { get; set; } = 25 / 3;
         public int Games { get; set; } = 0;
+        public DateTime Time { get; set; }
 
         public int MMdbRaceId { get; set; }
         public MMdbRace MMdbRace { get; set; }

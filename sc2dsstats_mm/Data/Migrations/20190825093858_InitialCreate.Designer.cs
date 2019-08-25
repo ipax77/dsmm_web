@@ -9,7 +9,7 @@ using dsmm_server.Data;
 namespace sc2dsstats_mm.Migrations
 {
     [DbContext(typeof(MMdb))]
-    [Migration("20190825023523_InitialCreate")]
+    [Migration("20190825093858_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -118,6 +118,9 @@ namespace sc2dsstats_mm.Migrations
                     b.Property<double>("SIGMA")
                         .HasColumnType("REAL");
 
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("MMdbRaceRatingId");
 
                     b.HasIndex("MMdbRaceId");
@@ -148,6 +151,9 @@ namespace sc2dsstats_mm.Migrations
 
                     b.Property<double>("SIGMA")
                         .HasColumnType("REAL");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("MMdbRatingId");
 

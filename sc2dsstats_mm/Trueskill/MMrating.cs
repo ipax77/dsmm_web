@@ -78,19 +78,31 @@ namespace DSmm.Trueskill
                 var res = newRatingsWinLoseExpected[pl];
                 string name = pl.Id.ToString();
                 MMplayerNG mpl = new MMplayerNG();
+                MMPlRating plrat = new MMPlRating();
                 if (_mm.MMplayers.ContainsKey(name))
+                {
                     mpl = _mm.MMplayers[name];
+                    plrat = mpl.Rating[lobby].LastOrDefault().ShallowCopy();
+                    plrat.Db = false;
+                }
                 else
                     mpl.Name = "Dummy" + i;
 
                 if (cmdr == true)
+                {
                     mpl = _mm.MMraces[name];
+                    plrat = mpl.Rating[lobby].LastOrDefault().ShallowCopy();
+                    plrat.Db = false;
+                }
 
-                double temp = mpl.Rating[lobby].EXP;
-                mpl.Rating[lobby].EXP = res.ConservativeRating;
-                mpl.ExpChange = mpl.Rating[lobby].EXP - temp;
-                mpl.Rating[lobby].MU = res.Mean;
-                mpl.Rating[lobby].SIGMA = res.StandardDeviation;
+                double temp = plrat.EXP;
+                plrat.EXP = res.ConservativeRating;
+                mpl.ExpChange = plrat.EXP - temp;
+                plrat.MU = res.Mean;
+                plrat.SIGMA = res.StandardDeviation;
+                plrat.Games++;
+                plrat.Time = DateTime.UtcNow;
+                mpl.Rating[lobby].Add(plrat);
                 game.Team1.Add(mpl);
                 i++;
             }
@@ -99,19 +111,31 @@ namespace DSmm.Trueskill
                 var res = newRatingsWinLoseExpected[pl];
                 string name = pl.Id.ToString();
                 MMplayerNG mpl = new MMplayerNG();
+                MMPlRating plrat = new MMPlRating();
                 if (_mm.MMplayers.ContainsKey(name))
+                {
                     mpl = _mm.MMplayers[name];
+                    plrat = mpl.Rating[lobby].LastOrDefault().ShallowCopy();
+                    plrat.Db = false;
+                }
                 else
                     mpl.Name = "Dummy" + i;
 
                 if (cmdr == true)
+                {
                     mpl = _mm.MMraces[name];
+                    plrat = mpl.Rating[lobby].LastOrDefault().ShallowCopy();
+                    plrat.Db = false;
+                }
 
-                double temp = mpl.Rating[lobby].EXP;
-                mpl.Rating[lobby].EXP = res.ConservativeRating;
-                mpl.ExpChange = mpl.Rating[lobby].EXP - temp;
-                mpl.Rating[lobby].MU = res.Mean;
-                mpl.Rating[lobby].SIGMA = res.StandardDeviation;
+                double temp = plrat.EXP;
+                plrat.EXP = res.ConservativeRating;
+                mpl.ExpChange = plrat.EXP - temp;
+                plrat.MU = res.Mean;
+                plrat.SIGMA = res.StandardDeviation;
+                plrat.Games++;
+                plrat.Time = DateTime.UtcNow;
+                mpl.Rating[lobby].Add(plrat);
                 game.Team2.Add(mpl);
                 i++;
             }
@@ -178,19 +202,30 @@ namespace DSmm.Trueskill
                     }
                 }
                 MMplayerNG rpl = _mm.MMraces[pl.Race];
+                MMPlRating plrat = mpl.Rating[lobby].LastOrDefault();
+                if (plrat == null)
+                {
+                    plrat = new MMPlRating();
+                    mpl.Rating[lobby].Add(plrat);
+                }
+                MMPlRating cmdrrat = rpl.Rating[lobby].LastOrDefault();
+                if (cmdrrat == null)
+                {
+                    cmdrrat = new MMPlRating();
+                    rpl.Rating[lobby].Add(cmdrrat);
+                }
 
-                mpl.Rating[lobby].Games++;
-                rpl.Rating[lobby].Games++;
+
 
                 if (pl.Team == 0)
                 {
-                    team1.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
-                    rteam1.AddPlayer(new Player(pl.Race), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                    team1.AddPlayer(new Player(mpl.Name), new Rating(plrat.MU, plrat.SIGMA));
+                    rteam1.AddPlayer(new Player(pl.Race), new Rating(cmdrrat.MU, cmdrrat.SIGMA));
                 }
                 else
                 {
-                    team2.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
-                    rteam2.AddPlayer(new Player(pl.Race), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                    team2.AddPlayer(new Player(mpl.Name), new Rating(plrat.MU, plrat.SIGMA));
+                    rteam2.AddPlayer(new Player(pl.Race), new Rating(cmdrrat.MU, cmdrrat.SIGMA));
                 }
                 j++;
             }
@@ -217,19 +252,29 @@ namespace DSmm.Trueskill
                     mpl.Name = "Dummy" + i;
 
                 MMplayerNG rpl = _mm.MMraces[pl.RACE];
+                MMPlRating plrat = mpl.Rating[lobby].LastOrDefault();
+                if (plrat == null)
+                {
+                    plrat = new MMPlRating();
+                    mpl.Rating[lobby].Add(plrat);
+                }
+                MMPlRating cmdrrat = rpl.Rating[lobby].LastOrDefault();
+                if (cmdrrat == null)
+                {
+                    cmdrrat = new MMPlRating();
+                    rpl.Rating[lobby].Add(cmdrrat);
+                }
 
                 if (pl.TEAM == replay.WINNER)
                 {
-                    team1.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
-                    rteam1.AddPlayer(new Player(pl.RACE), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                    team1.AddPlayer(new Player(mpl.Name), new Rating(plrat.MU, plrat.SIGMA));
+                    rteam1.AddPlayer(new Player(pl.RACE), new Rating(cmdrrat.MU, cmdrrat.SIGMA));
                 }
                 else
                 {
-                    team2.AddPlayer(new Player(mpl.Name), new Rating(mpl.Rating[lobby].MU, mpl.Rating[lobby].SIGMA));
-                    rteam2.AddPlayer(new Player(pl.RACE), new Rating(rpl.Rating[lobby].MU, rpl.Rating[lobby].SIGMA));
+                    team2.AddPlayer(new Player(mpl.Name), new Rating(plrat.MU, plrat.SIGMA));
+                    rteam2.AddPlayer(new Player(pl.RACE), new Rating(cmdrrat.MU, cmdrrat.SIGMA));
                 }
-                rpl.Rating[lobby].Games++;
-                mpl.Rating[lobby].Games++;
                 i++;
             }
             return (RateGame(team1, team2, lobby, _mm), RateGame(rteam1, rteam2, lobby, _mm, true));
@@ -263,10 +308,16 @@ namespace DSmm.Trueskill
                     
                     foreach (var pl in thisresult)
                     {
+                        MMPlRating plrat = pl.Rating[lobby].LastOrDefault();
+                        if (plrat == null)
+                        {
+                            plrat = new MMPlRating();
+                            pl.Rating[lobby].Add(plrat);
+                        }
                         if (i < result.Count() / 2)
-                            team1.AddPlayer(new Player(i), new Rating(pl.Rating[lobby].MU, pl.Rating[lobby].SIGMA));
+                            team1.AddPlayer(new Player(i), new Rating(plrat.MU, plrat.SIGMA));
                         else
-                            team2.AddPlayer(new Player(i), new Rating(pl.Rating[lobby].MU, pl.Rating[lobby].SIGMA));
+                            team2.AddPlayer(new Player(i), new Rating(plrat.MU, plrat.SIGMA));
                         i++;
                     }
 

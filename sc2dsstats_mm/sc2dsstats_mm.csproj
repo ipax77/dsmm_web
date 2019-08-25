@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Data\Migrations\20190825023523_InitialCreate.cs" />
+    <Compile Remove="Data\Migrations\20190825023523_InitialCreate.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="s2decode\pylib\site-packages\mpyq.py" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\attributes.py" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\attributes.pyc" />

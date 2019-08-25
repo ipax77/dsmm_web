@@ -378,7 +378,7 @@ namespace dsmm_server.Repositories
                 _startUp.MMplayers[name].Declined = false;
                 _startUp.MMplayers[name].Ticks = 0;
                 _startUp.MMplayers[name].Random = false;
-                _startUp.MMplayers[name].Ladder = false;
+                //_startUp.MMplayers[name].Ladder = false;
                 _startUp.MMplayers[name].Lobby = new HashSet<MMplayerNG>();
             }
         }

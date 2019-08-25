@@ -72,7 +72,7 @@ namespace sc2dsstats_mm
             if (!System.IO.Directory.Exists(gamesDir))
                 System.IO.Directory.CreateDirectory(gamesDir);
 
-            UpdateDatabase(app);
+            //UpdateDatabase(app);
 
             if (env.IsDevelopment())
             {

@@ -116,6 +116,9 @@ namespace sc2dsstats_mm.Migrations
                     b.Property<double>("SIGMA")
                         .HasColumnType("REAL");
 
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("MMdbRaceRatingId");
 
                     b.HasIndex("MMdbRaceId");
@@ -146,6 +149,9 @@ namespace sc2dsstats_mm.Migrations
 
                     b.Property<double>("SIGMA")
                         .HasColumnType("REAL");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("MMdbRatingId");
 

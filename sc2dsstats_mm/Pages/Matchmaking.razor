@@ -81,7 +81,7 @@ else
                     <label for="mymu">My rating:</label>
                     <h4>
                         <span class="badge badge-info border border-info mr-2" style="min-width: 75px;" id="mymu">
-                            @Math.Round(Player.Rating[Player.Mode + Player.Mode2 + Player.Ladder].EXP, 2)
+                            @Math.Round(Player.Rating[Player.Mode + Player.Mode2 + Player.Ladder].LastOrDefault().EXP, 2)
                         </span>
                     </h4>
                 </div>
@@ -253,7 +253,7 @@ else
                             {
                                 <tr>
                                     <td>@pl.Name</td>
-                                    <td><h5><span class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</span></h5></td>
+                                    <td><h5><span class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].LastOrDefault().EXP, 2)</span></h5></td>
                                     @if (pl.ExpChange < 0)
                                     {
                                         <td><h5><span class="badge badge-danger" style="min-width: 70px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
@@ -306,7 +306,7 @@ else
                             {
                                 <tr>
                                     <td>@pl.Name</td>
-                                    <td><h5><spann class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].EXP, 2)</spann></h5></td>
+                                    <td><h5><spann class="badge badge-info" style="min-width: 70px;">@Math.Round(pl.Rating[_mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault().Lobby].LastOrDefault().EXP, 2)</spann></h5></td>
                                     @if (pl.ExpChange < 0)
                                     {
                                         <td><h5><span class="badge badge-danger" style="min-width: 80px;">@Math.Round(pl.ExpChange, 2)</span></h5></td>
@@ -607,10 +607,10 @@ else
         {
             j++;
             if (pl.Name == Player.Name) mypos = "Player" + j;
-            if (pl.Rating[lobby].Games > games)
+            if (pl.Rating[lobby].LastOrDefault().Games > games)
             {
                 creator = "Player" + j;
-                games = pl.Rating[lobby].Games;
+                games = pl.Rating[lobby].LastOrDefault().Games;
             }
         }
 
