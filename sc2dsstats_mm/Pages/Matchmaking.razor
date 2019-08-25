@@ -129,16 +129,30 @@ else
                         </div>
                     </div>
                     <div class="form-group mr-2">
-                        <input type="checkbox" checked="@Player.Ladder" />
-                        <button disabled="@_mms.isFindDisabled" type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@LadderClick" title="Ladder games.">
-                            Ladder
-                        </button>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox"
+                                   class="custom-control-input"
+                                   name="plLadder"
+                                   checked="@Player.Ladder"
+                                   id="plLadder"
+                                   @onchange="@(() => @LadderClick())" />
+                            <label class="custom-control-label" for="plLadder">
+                                Ladder
+                            </label>
+                        </div>
                     </div>
                     <div class="form-group mr-2 @_mms.RandomIsDisabled">
-                        <input type="checkbox" checked="@Player.Random" />
-                        <button type="button" class="btn btn-sm btn-primary" data-toggle="tooltip" data-placement="top" @onclick="@Randoms" title="Fill your lobby with random players by making your game public.">
-                            allow Randoms
-                        </button>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox"
+                                   class="custom-control-input"
+                                   name="plRandom"
+                                   checked="@Player.Random"
+                                   id="plRandom"
+                                   @onchange="@(() => @Randoms())" />
+                            <label class="custom-control-label" for="plRandom">
+                                Ladder
+                            </label>
+                        </div>
                     </div>
                 </form>
                 <br />
@@ -392,11 +406,11 @@ else
 
 
 @code {
-    MMplayerNG Player = new MMplayerNG();
-    dsreplay replay;
-    string AuthName = "";
+        MMplayerNG Player = new MMplayerNG();
+        dsreplay replay;
+        string AuthName = "";
 
-    TimeSpan _time { get; set; } = new TimeSpan(0);
+        TimeSpan _time { get; set; } = new TimeSpan(0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -424,7 +438,7 @@ else
             List<dsreplay>
     reps = new List<dsreplay>
         ();
-        _startUp.replays.Remove(1006, out reps);
+            _startUp.replays.Remove(1006, out reps);
         }
         catch { }
 
@@ -432,82 +446,82 @@ else
 
 
         _state.PropertyChanged += StateUpdate;
-        }
+    }
 
 
-        private void StateUpdate(object sender, PropertyChangedEventArgs e)
-        {
+    private void StateUpdate(object sender, PropertyChangedEventArgs e)
+    {
         InvokeAsync(() => StateHasChanged());
-        }
+    }
 
-        async Task Save()
-        {
+    async Task Save()
+    {
 
         if (!CheckName(_mms.temp_Playername))
-        return;
+            return;
 
         if (_startUp.Players.Contains(_mms.temp_Playername))
         {
-        _mms.Failed = true;
-        _mms.Error = "Player already used. Please login to use this ID.";
-        return;
+            _mms.Failed = true;
+            _mms.Error = "Player already used. Please login to use this ID.";
+            return;
         }
 
         _mms.Failed = false;
         _mms.Saved = true;
         Player.Name = _mms.temp_Playername;
         if (_startUp.MMplayers.ContainsKey(Player.Name))
-        Player = _startUp.MMplayers[Player.Name];
+            Player = _startUp.MMplayers[Player.Name];
         else
-        _startUp.MMplayers.TryAdd(Player.Name, Player);
+            _startUp.MMplayers.TryAdd(Player.Name, Player);
         Player.Credential = true;
         Player.AuthName = AuthName;
         if (AuthName != null && AuthName != "")
         {
-        _startUp.Players.Add(Player.Name);
-        _startUp.Auth[AuthName] = Player.Name;
+            _startUp.Players.Add(Player.Name);
+            _startUp.Auth[AuthName] = Player.Name;
         }
         await _startUp.Save();
-        }
+    }
 
-        bool CheckName(string name)
-        {
+    bool CheckName(string name)
+    {
         if (name.Length <= 2)
         {
-        _mms.Failed = true;
-        _mms.Error = "Not a valid Starcraft2 playername.";
-        return false;
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
         }
 
         if (name.Length > 64)
         {
-        _mms.Failed = true;
-        _mms.Error = "Not a valid Starcraft2 playername.";
-        return false;
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
         }
 
         if (Regex.Escape(name) != name)
         {
-        _mms.Failed = true;
-        _mms.Error = "Not a valid Starcraft2 playername.";
-        return false;
+            _mms.Failed = true;
+            _mms.Error = "Not a valid Starcraft2 playername.";
+            return false;
         }
 
         return true;
-        }
+    }
 
-        async Task Findgame()
-        {
+    async Task Findgame()
+    {
         if (!CheckName(Player.Name))
         {
-        _mms.InfoBadge = "badge-danger";
-        _mms.InfoBadgeMsg = "Invalid Name";
-        return;
+            _mms.InfoBadge = "badge-danger";
+            _mms.InfoBadgeMsg = "Invalid Name";
+            return;
         }
         if (AuthName != null && AuthName != "")
         {
-        _startUp.Players.Add(Player.Name);
-        _startUp.Auth[AuthName] = Player.Name;
+            _startUp.Players.Add(Player.Name);
+            _startUp.Auth[AuthName] = Player.Name;
         }
         _time = new TimeSpan(0);
         _mms.RepID = 0;
@@ -525,63 +539,63 @@ else
         Player.DBupdate = false;
         _mms.InfoBadge = "badge-warning";
         _mms.InfoBadgeMsg = "Searching";
-        }
+    }
 
-        void Randoms()
-        {
+    void Randoms()
+    {
         Player.Random = !Player.Random;
-        }
+    }
 
-        void LadderClick()
-        {
+    void LadderClick()
+    {
         Player.Ladder = !Player.Ladder;
-        }
+    }
 
-        void Reportgame()
-        {
-        if (_mms.isFindDisabled == true) return;
+    void Reportgame()
+    {
+        //if (_mms.isFindDisabled == true) return;
         _mms.Info = "To report a game please upload the propper Direct Strike Replay. TY!";
         _mms.RepID = Player.Game.ID;
         _mms.isFindDisabled = false;
         _mms.RepSelDisabled = false;
         _mms.ReportIsClicked = !_mms.ReportIsClicked;
-        }
+    }
 
-        void Exitfind()
-        {
+    void Exitfind()
+    {
         _mms.isFindDisabled = false;
         _mm.ExitQ(Player.Name);
         StopTimer();
         _mms.InfoBadge = "badge-secondary";
         _mms.InfoBadgeMsg = "Offline";
-        }
+    }
 
-        void Gamefound()
-        {
+    void Gamefound()
+    {
         _mms.GAMEFOUND = true;
         _mms.Info = "Game found!";
-        }
+    }
 
-        void Acceptgame()
-        {
+    void Acceptgame()
+    {
         _mms.isAcceptDisabled = true;
         _mms.isDeclinedDisabled = true;
         _mm.Accept(Player.Name, Player.Game.ID);
 
         _mms.Info = "Game accepted! Waiting for other players ..";
-        }
+    }
 
-        void Declinegame()
-        {
+    void Declinegame()
+    {
         _mm.Decline(Player.Name, Player.Game.ID);
         _mms.Info = "Game declined. :(";
         _mms.InfoBadge = "badge-secondary";
         _mms.InfoBadgeMsg = "Offline";
         StopTimer();
-        }
+    }
 
-        void GameInfo()
-        {
+    void GameInfo()
+    {
         string mypos = "";
         string creator = "Player1";
 
@@ -591,31 +605,31 @@ else
         string lobby = Player.Mode + Player.Mode2 + Player.Ladder;
         foreach (var pl in Player.Game.GetPlayers())
         {
-        j++;
-        if (pl.Name == Player.Name) mypos = "Player" + j;
-        if (pl.Rating[lobby].Games > games)
-        {
-        creator = "Player" + j;
-        games = pl.Rating[lobby].Games;
-        }
+            j++;
+            if (pl.Name == Player.Name) mypos = "Player" + j;
+            if (pl.Rating[lobby].Games > games)
+            {
+                creator = "Player" + j;
+                games = pl.Rating[lobby].Games;
+            }
         }
 
         if (creator == mypos.ToString())
         {
-        _mms.Info = "Game found! You have been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and create a private Direct Strike Lobby. " +
-        "Join the Channel sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat and post the lobby link combined with the MMID by typing \"/lobbylink " +
-        mmid + "\" (without the quotes). Have fun! :)";
+            _mms.Info = "Game found! You have been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and create a private Direct Strike Lobby. " +
+            "Join the Channel sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat and post the lobby link combined with the MMID by typing \"/lobbylink " +
+            mmid + "\" (without the quotes). Have fun! :)";
         }
         else
         {
-        _mms.Info = "Game found! Player " + creator + " has been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and join the Channel" +
-        " sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat. Wait for the lobby link combined with the MMID " +
-        mmid + " and click on it. Have fun! :)";
+            _mms.Info = "Game found! Player " + creator + " has been elected to be the lobby creator. Please open your Starcraft 2 client on the " + Player.Game.Server + " server and join the Channel" +
+            " sc2dsmm by typing \"/join sc2dsmm\" in the Starcraft 2 chat. Wait for the lobby link combined with the MMID " +
+            mmid + " and click on it. Have fun! :)";
         }
-        }
+    }
 
-        public void SetTimer()
-        {
+    public void SetTimer()
+    {
         _mms._time = new TimeSpan(0);
         // Create a timer with a two second interval.
         _mms.aTimer = new System.Timers.Timer(2000);
@@ -623,68 +637,68 @@ else
         _mms.aTimer.Elapsed += async (sender, e) => await HandleTimer();
         _mms.aTimer.AutoReset = true;
         _mms.aTimer.Enabled = true;
-        }
+    }
 
-        public void StopTimer()
-        {
+    public void StopTimer()
+    {
         try
         {
-        _mms.aTimer.Stop();
-        _mms.aTimer.Elapsed -= async (sender, e) => await HandleTimer();
-        _mms.aTimer.Dispose();
+            _mms.aTimer.Stop();
+            _mms.aTimer.Elapsed -= async (sender, e) => await HandleTimer();
+            _mms.aTimer.Dispose();
         }
         catch { }
-        }
+    }
 
-        private async Task HandleTimer()
-        {
+    private async Task HandleTimer()
+    {
 
         if (_mms.AllowRandoms == false && _mms._time.TotalMinutes > 1)
         {
-        _mms.AllowRandoms = true;
-        _mms.RandomIsDisabled = "";
-        _mms.Info = "You can fill your lobby with randoms now if you want (check 'allow Randoms' top right)";
+            _mms.AllowRandoms = true;
+            _mms.RandomIsDisabled = "";
+            _mms.Info = "You can fill your lobby with randoms now if you want (check 'allow Randoms' top right)";
         }
 
         if (Player.Notify == true)
         {
-        lock (Player)
-        {
-        if (Player.Game.Declined == true)
-        {
-        _mms.Info = "Game declined - searching again.";
-        }
-        else if (Player.Game.Accepted == true)
-        {
-        _mms.InfoBadge = "badge-success";
-        _mms.InfoBadgeMsg = "Game accepted!";
-        Player.Lobby.Clear();
-        GameInfo();
-        StopTimer();
-        }
-        else if (Player.Game.ID > 0)
-        {
-        _mms.InfoBadge = "badge-primary";
-        _mms.InfoBadgeMsg = "Game found!";
-        Player.Ticks = 0;
-        }
-        Player.Notify = false;
-        }
-        if (Player.Game.Declined == true && Player.Declined == false && Player.Accepted == true)
-        await Findgame();
+            lock (Player)
+            {
+                if (Player.Game.Declined == true)
+                {
+                    _mms.Info = "Game declined - searching again.";
+                }
+                else if (Player.Game.Accepted == true)
+                {
+                    _mms.InfoBadge = "badge-success";
+                    _mms.InfoBadgeMsg = "Game accepted!";
+                    Player.Lobby.Clear();
+                    GameInfo();
+                    StopTimer();
+                }
+                else if (Player.Game.ID > 0)
+                {
+                    _mms.InfoBadge = "badge-primary";
+                    _mms.InfoBadgeMsg = "Game found!";
+                    Player.Ticks = 0;
+                }
+                Player.Notify = false;
+            }
+            if (Player.Game.Declined == true && Player.Declined == false && Player.Accepted == true)
+                await Findgame();
         }
 
         Player.Ticks++;
 
         _mms._time = _mms._time.Add(TimeSpan.FromSeconds(2));
         await InvokeAsync(() => StateHasChanged());
-        }
+    }
 
-        public void Dispose()
-        {
+    public void Dispose()
+    {
         _state.PropertyChanged -= StateUpdate;
         _mm.ExitQ(Player.Name);
         StopTimer();
-        }
+    }
 
-        }
+}
