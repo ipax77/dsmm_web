@@ -19,6 +19,7 @@ using System.Runtime.CompilerServices;
 using DSmm.Repositories;
 using dsmm_server.Data;
 using sc2dsstats_mm;
+using sc2dsstats.Models;
 
 namespace dsmm_server.Repositories
 {
@@ -61,6 +62,7 @@ namespace dsmm_server.Repositories
 
         public ObservableCollection<MMgameNG> Games { get; set; } = new ObservableCollection<MMgameNG>();
         public ConcurrentDictionary<int, MMgameNG> Reports { get; set; } = new ConcurrentDictionary<int, MMgameNG>();
+        public List<dsreplay> Replays { get; set; } = new List<dsreplay>();
         private ConcurrentBag<string> ReplayHash { get; set; } = new ConcurrentBag<string>();
 
         private readonly ILogger _logger;
@@ -123,6 +125,23 @@ namespace dsmm_server.Repositories
                     Console.WriteLine(e.Message);
                 }
             }
+
+            foreach (var line in File.ReadAllLines(Program.myJson_file))
+            {
+                dsreplay rep = null;
+                try
+                {
+                    rep = JsonSerializer.Deserialize<dsreplay>(line);
+                }
+                catch { }
+                if (rep != null)
+                {
+                    //rep.Init();
+                    ReplayHash.Add(rep.HASH);
+                    Replays.Add(rep);
+                }
+            }
+
 
             Games.CollectionChanged += GamesChanged;
         }

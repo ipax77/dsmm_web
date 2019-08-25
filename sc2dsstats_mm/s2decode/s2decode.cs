@@ -72,7 +72,7 @@ namespace s2decode
         }
 
 
-        public dsreplay DecodePython(Object stateInfo, int ID)
+        public dsreplay DecodePython(Object stateInfo, int ID, bool saveit = true)
         {
             Interlocked.Increment(ref THREADS);
             //Console.WriteLine("Threads running: " + THREADS);
@@ -194,7 +194,8 @@ namespace s2decode
                 replay.Init();
                 //if (!replaysng.ContainsKey(repid)) replaysng.TryAdd(repid, replay);
                 //Save(Program.myJson_file, replay);
-                SaveDS(Program.myJson_file, replay);
+                if (saveit == true)
+                    SaveDS(Program.myJson_file, replay);
 
             }
 

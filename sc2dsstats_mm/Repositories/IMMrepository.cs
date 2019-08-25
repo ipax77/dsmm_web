@@ -33,6 +33,7 @@ namespace DSmm.Repositories
         //ConcurrentDictionary<string, MMplayerNG> MMplayers { get; }
         ObservableCollection<MMgameNG> Games { get; }
         ConcurrentDictionary<int, MMgameNG> Reports { get; }
+        List<dsreplay> Replays { get; set; }
 
         Task<MMplayerNG> LetmePlay(MMplayerNG pl);
         Task Accept(string name, int id);

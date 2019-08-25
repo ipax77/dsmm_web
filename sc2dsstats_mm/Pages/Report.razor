@@ -259,6 +259,7 @@
                     _mms.InfoBadge = "badge-success";
                     _mms.InfoBadgeMsg = "Reported";
                     await _repserv.Save(report);
+                    _mm.Replays.Add(replay);
                     if (racereport != null)
                         await _repserv.SaveRace(racereport);
                 }

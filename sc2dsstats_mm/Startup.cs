@@ -53,6 +53,7 @@ namespace sc2dsstats_mm
             services.AddScoped<MMservice>();
             services.AddScoped<MMserviceNG>();
             services.AddScoped<DSdyn>();
+            services.AddScoped<GameChartService>();
 
             services.Configure<AppConfig>(Configuration);
             services.AddSingleton<IMMrepository, MMrepository>();

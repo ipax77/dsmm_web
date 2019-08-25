@@ -32,14 +32,14 @@ namespace dsmm_server.Data
             _s2dec.LoadEngine(0);
         }
 
-        public async Task<dsreplay> Decode(string rep, int mmid)
+        public async Task<dsreplay> Decode(string rep, int mmid, bool saveit = true)
         {
             return await Task.Run(() =>
             {
                 dsreplay replay = null;
                 lock (dec_lock)
                 {
-                    replay = _s2dec.DecodePython(rep, mmid);
+                    replay = _s2dec.DecodePython(rep, mmid, saveit);
                     if (_startUp.replays.ContainsKey(mmid))
                         _startUp.replays[mmid].Add(replay);
                     else
@@ -104,7 +104,7 @@ namespace dsmm_server.Data
                         dbrat.MMdbPlayerId = dbpl.MMdbPlayerId;
                         dbrat.MMdbPlayer = dbpl;
                         rat.Db = true;
-                        dbpl.MMdbRatings.Add(dbrat);
+                        _db.MMdbRatings.Add(dbrat);
                     }
                 }
             }
@@ -139,7 +139,7 @@ namespace dsmm_server.Data
                         dbrat.MMdbRaceId = dbpl.MMdbRaceId;
                         dbrat.MMdbRace = dbpl;
                         rat.Db = true;
-                        dbpl.MMdbRaceRatings.Add(dbrat);
+                        _db.MMdbRaceRatings.Add(dbrat);
                     }
                 }
             }

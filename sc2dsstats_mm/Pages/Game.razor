@@ -12,6 +12,13 @@
     {
         @NewReplay()
     }
+    <button class="btn btn-sm btn-secondary mb-1" @onclick="@(() => showDetails = !showDetails)">Show details</button>
+    <div class="container-fluid">
+        @if (showDetails == true)
+        {
+            <GameChart replay="@replay" />
+        }
+    </div>
     <div class="row">
         <div>
             <div>
@@ -260,6 +267,7 @@
     string Breakpoint = "MIN10";
     string pldiffcolor = DSdata.color_plbg_def;
     int replayid = 0;
+    bool showDetails = false;
 
     static double MIN5 = 6720;
     static double MIN10 = 13440;
@@ -272,66 +280,66 @@
             { "MIN5", MIN5 },
             { "MIN10", MIN10 },
             { "MIN15", MIN15 }
-            };
+                };
 
-            protected override void OnInitialized()
+    protected override void OnInitialized()
+    {
+        BuildCheck = new List<bool>
+            ();
+        for (int i = 0; i <= 7; i++)
+        {
+            BuildCheck.Add(false);
+        }
+
+        if (replay != null)
+        {
+            BreakpointMid.Add("ALL", replay.DURATION);
+        }
+    }
+
+    object NewReplay()
+    {
+        replayid = replay.ID;
+        showDetails = false;
+        if (replay != null)
+        {
+            BreakpointMid["ALL"] = replay.DURATION;
+        }
+
+        dsplayer pl = replay.PLAYERS.Where(x => x.NAME == _pl.Name).FirstOrDefault();
+        int plpos = 0;
+        int opppos = 0;
+        if (pl != null)
+        {
+            plpos = pl.REALPOS;
+            dsplayer opp = replay.GetOpp(plpos);
+            if (opp != null)
             {
-            BuildCheck = new List<bool>
-                ();
-                for (int i = 0; i <= 7; i++)
-                {
-                BuildCheck.Add(false);
-                }
-
-                if (replay != null)
-                {
-                BreakpointMid.Add("ALL", replay.DURATION);
-                }
-                }
-
-                object NewReplay()
-                {
-                replayid = replay.ID;
-
-                if (replay != null)
-                {
-                BreakpointMid["ALL"] = replay.DURATION;
-                }
-
-                dsplayer pl = replay.PLAYERS.Where(x => x.NAME == _pl.Name).FirstOrDefault();
-                int plpos = 0;
-                int opppos = 0;
-                if (pl != null)
-                {
-                plpos = pl.REALPOS;
-                dsplayer opp = replay.GetOpp(plpos);
-                if (opp != null)
-                {
                 opppos = opp.REALPOS;
-                }
-                }
-                for (int i = 0; i < BuildCheck.Count(); i++)
-                {
-                BuildCheck[i] = false;
-                if (i == plpos || i == opppos)
-                {
+            }
+        }
+        for (int i = 0; i < BuildCheck.Count(); i++)
+        {
+            BuildCheck[i] = false;
+            if (i == plpos || i == opppos)
+            {
                 BuildCheck[i] = true;
-                }
-                }
-                return null;
-                }
+            }
+        }
+        return null;
+    }
 
-                void BreakpointClick(string bp)
-                {
-                Breakpoint = bp;
-                }
+    void BreakpointClick(string bp)
+    {
+        Breakpoint = bp;
+    }
 
-                EventCallback ShowBuild(int pos)
-                {
-                EventCallback e = new EventCallback();
-                BuildCheck[pos] = true;
+    EventCallback ShowBuild(int pos)
+    {
+        EventCallback e = new EventCallback();
+        BuildCheck[pos] = true;
 
-                return e;
-                }
+        return e;
+    }
 
-                }
+}
