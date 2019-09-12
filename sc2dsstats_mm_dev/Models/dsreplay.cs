@@ -21,8 +21,8 @@ namespace sc2dsstats.Models
         public int ID { get; set; }
         public string REPLAY { get; set; }
         public double GAMETIME { get; set; }
-        public int WINNER { get; set; }
-        public int DURATION { get; set; }
+        public int WINNER { get; set; } = -1;
+        public int DURATION { get; set; } = 0;
         public List<dsplayer> PLAYERS { get; set; } = new List<dsplayer>();
         public List<string> RACES { get; set; }
         [JsonIgnore]
@@ -37,9 +37,16 @@ namespace sc2dsstats.Models
         public int REPORTED { get; set; } = 0;
         public bool ISBRAWL { get; set; } = false;
         public string GAMEMODE { get; set; } = "unknown";
+        public string VERSION { get; set; } = "1.6";
         public string HASH { get; set; }
-        public string VERSION { get; set; } = "1.5";
-        
+        [JsonIgnore]
+        public List<UnitEvent> UnitBorn { get; set; } = new List<UnitEvent>();
+        [JsonIgnore]
+        public Dictionary<int, Dictionary<int, UnitLife>> UnitLife { get; set; } = new Dictionary<int, Dictionary<int, UnitLife>>();
+        [JsonIgnore]
+        public Dictionary<int, List<int>> Spawns { get; set; } = new Dictionary<int, List<int>>();
+        [JsonIgnore]
+        public List<Refinery> Refineries { get; set; } = new List<Refinery>();
 
         public dsreplay()
         {
@@ -73,7 +80,6 @@ namespace sc2dsstats.Models
             {
                 md5 = GetMd5Hash(md5Hash, hashstring);
             }
-            HASH = md5;
             return md5;
         }
 
@@ -1044,6 +1050,39 @@ namespace sc2dsstats.Models
         public int VespeneUsedInProgressTechnology { get; set; } = 0;
         public int WorkersActiveCount { get; set; } = 0;
         **/
+        public int Tier { get; set; } = 1;
+        public int Gas { get; set; } = 0;
+    }
+
+    public class UnitEvent
+    {
+        public int Gameloop { get; set; }
+        public int PlayerId { get; set; } = 0;
+        public int KilledId { get; set; } = 0;
+        public int KilledBy { get; set; }
+        public int KillerRecycleTag { get; set; }
+        public int Index { get; set; }
+        public int RecycleTag { get; set; }
+        public string Name { get; set; } = "";
+        public int x { get; set; }
+        public int y { get; set; }
+    }
+
+    public class UnitLife
+    {
+        public int Index { get; set; }
+        public int RecycleTag { get; set; }
+        public UnitEvent Born { get; set; }
+        public UnitEvent Died { get; set; }
+    }
+
+    public class Refinery
+    {
+        public int Index { get; set; }
+        public int RecycleTag { get; set; }
+        public int PlayerId { get; set; }
+        public bool Taken { get; set; } = false;
+        public int Gameloop { get; set; } = 0;
     }
 }
 

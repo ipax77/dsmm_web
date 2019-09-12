@@ -12,11 +12,18 @@
     {
         @NewReplay()
     }
-    <button class="btn btn-sm btn-secondary mb-1" @onclick="@(() => showDetails = !showDetails)">Show details</button>
+    <div class="row">
+        <button class="btn btn-sm btn-secondary mb-1" @onclick="@(() => showDetails = !showDetails)">Show details</button>
+        <button class="btn btn-sm btn-secondary mb-1" @onclick="@(() => showMap = !showMap)">Show map (beta)</button>
+    </div>
     <div class="container-fluid">
         @if (showDetails == true)
         {
             <GameChart replay="@replay" />
+        }
+        @if (showMap == true)
+        {
+            <GameMap replay="@replay" />
         }
     </div>
     <div class="row">
@@ -268,6 +275,7 @@
     string pldiffcolor = DSdata.color_plbg_def;
     int replayid = 0;
     bool showDetails = false;
+    bool showMap = false;
 
     static double MIN5 = 6720;
     static double MIN10 = 13440;
@@ -280,7 +288,7 @@
             { "MIN5", MIN5 },
             { "MIN10", MIN10 },
             { "MIN15", MIN15 }
-                };
+                    };
 
     protected override void OnInitialized()
     {

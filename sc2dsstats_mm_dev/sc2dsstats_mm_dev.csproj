@@ -146,6 +146,8 @@
     <None Remove="s2decode\pylib\site-packages\s2protocol\versions\protocol75800.pyc" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\versions\protocol76052.py" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\versions\protocol76052.pyc" />
+    <None Remove="s2decode\pylib\site-packages\s2protocol\versions\protocol76114.py" />
+    <None Remove="s2decode\pylib\site-packages\s2protocol\versions\protocol76114.pyc" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\versions\__init__.py" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\versions\__init__.pyc" />
     <None Remove="s2decode\pylib\site-packages\s2protocol\__init__.py" />
@@ -574,6 +576,12 @@
     <Content Include="s2decode\pylib\site-packages\s2protocol\versions\protocol76052.pyc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="s2decode\pylib\site-packages\s2protocol\versions\protocol76114.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="s2decode\pylib\site-packages\s2protocol\versions\protocol76114.pyc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="s2decode\pylib\site-packages\s2protocol\versions\__init__.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -592,6 +600,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Blazor.Extensions.Canvas" Version="0.4.0" />
     <PackageReference Include="IronPython" Version="2.7.10-alpha0" />
     <PackageReference Include="IronPython.StdLib" Version="2.7.10-alpha0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="3.0.0-preview9.19424.4" />

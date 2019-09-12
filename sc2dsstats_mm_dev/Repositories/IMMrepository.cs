@@ -39,6 +39,7 @@ namespace DSmm.Repositories
         Task Accept(string name, int id);
         Task Decline(string name, int id);
         void ExitQ(string name);
+        string FixUnitName(string unit);
     }
 
 }

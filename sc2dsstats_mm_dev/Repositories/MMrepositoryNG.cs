@@ -78,6 +78,11 @@ namespace dsmm_server.Repositories
         static int Minticks = 20 / 2;
         bool LobbyCheck = false;
 
+        static Regex rx_star = new Regex(@"(.*)Starlight(.*)", RegexOptions.Singleline);
+        static Regex rx_light = new Regex(@"(.*)Lightweight(.*)", RegexOptions.Singleline);
+        static Regex rx_hero = new Regex(@"Hero(.*)WaveUnit", RegexOptions.Singleline);
+        static Regex rx_mp = new Regex(@"(.*)MP$", RegexOptions.Singleline);
+
         private StartUp _startUp;
 
         public MMrepositoryNG(ILogger<MMrepositoryNG> logger, StartUp startUp)
@@ -144,6 +149,45 @@ namespace dsmm_server.Repositories
 
 
             Games.CollectionChanged += GamesChanged;
+        }
+
+        public string FixUnitName(string unit)
+        {
+            if (unit == "TrophyRiftPremium") return "";
+            // abathur unknown
+            if (unit == "ParasiticBombRelayDummy") return "";
+            // raynor viking
+            if (unit == "VikingFighter" || unit == "VikingAssault") return "Viking";
+            if (unit == "DuskWings") return "DuskWing";
+            // stukov lib
+            if (unit == "InfestedLiberatorViralSwarm") return "InfestedLiberator";
+            // Tychus extra mins
+            if (unit == "MineralIncome") return "";
+            // Zagara
+            if (unit == "InfestedAbomination") return "Aberration";
+            // Horner viking
+            if (unit == "HornerDeimosVikingFighter" || unit == "HornerDeimosVikingAssault") return "HornerDeimosViking";
+            if (unit == "HornerAssaultGalleonUpgraded") return "HornerAssaultGalleon";
+            // Terrran thor
+            if (unit == "ThorAP") return "Thor";
+
+            Match m = rx_star.Match(unit);
+            if (m.Success)
+                return m.Groups[1].ToString() + m.Groups[2].ToString();
+
+            m = rx_light.Match(unit);
+            if (m.Success)
+                return m.Groups[1].ToString() + m.Groups[2].ToString();
+
+            m = rx_hero.Match(unit);
+            if (m.Success)
+                return m.Groups[1].ToString();
+
+            m = rx_mp.Match(unit);
+            if (m.Success)
+                return m.Groups[1].ToString();
+
+            return unit;
         }
 
         async void LobbyChanged(object aSender, NotifyCollectionChangedEventArgs aArgs)
