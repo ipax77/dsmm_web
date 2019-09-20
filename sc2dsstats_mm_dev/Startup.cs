@@ -19,7 +19,6 @@ using Blazor.FileReader;
 using dsmm_server.Models;
 using dsmm_server.Data;
 using sc2dsstats.Data;
-using s2decode;
 using DSmm.Repositories;
 using dsmm_server.Repositories;
 using DSmm;
@@ -56,23 +55,22 @@ namespace sc2dsstats_mm_dev
 
             services.AddFileReaderService(options => options.InitializeOnFirstCall = true);
 
-            services.AddSingleton<WeatherForecastService>();
-
             services.AddScoped<ScanStateChange>();
-            services.AddSingleton<S2decode>();
-            services.AddScoped<ReportService>();
             services.AddScoped<MMservice>();
             services.AddScoped<MMserviceNG>();
             services.AddScoped<DSdyn>();
             services.AddScoped<GameChartService>();
 
             services.Configure<AppConfig>(Configuration);
+            
             services.AddSingleton<IMMrepository, MMrepository>();
             services.AddSingleton<IMMrepositoryNG, MMrepositoryNG>();
-
+            services.AddSingleton<ReportService>();
             var optionsBuilder = new DbContextOptionsBuilder<MMdb>();
             optionsBuilder.UseSqlite("Data Source=/data/mm.db");
             services.AddSingleton<StartUp>((prov) => new StartUp(optionsBuilder.Options));
+            StartUp startup = new StartUp(optionsBuilder.Options);
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,4 +1,4 @@
-﻿@page "/report"
+﻿@page "/mygame"
 @using System.IO;
 @using Blazor.FileReader;
 @using pax.s2decode.Models;
@@ -15,10 +15,8 @@
 @inject IMMrepositoryNG _mm
 @inject IFileReaderService fileReaderService;
 
-<div class="row">
-    <button @onclick="@Close" class="btn btn-primary mr-1">Close</button>
-    <h4>Report</h4>
-</div>
+<h3>MyGame</h3>
+
 <style>
     .droptarget {
         display: block;
@@ -33,37 +31,16 @@
         font-weight: bold;
     }
 </style>
-<form class="form-inline mb-2">
-    <div class="d-flex flex-column mr-4">
-        <label for="i_mmid" class="control-label">
-            MMID:
-        </label>
-        <input class="form-control" type="number" @bind="@_mms.RepID" id="i_mmid" />
-    </div>
-    <div class="form-group mr-2">
-        <div class="d-flex flex-column">
-            <label for="reports" class="control-label">
-                Report for MMID:
-            </label>
-            <select id="reports" class="form-control" disabled="@_mms.RepSelDisabled" @bind="@_mms.RepID">
-                @foreach (var ent in _mm.Reports.Keys)
-                {
-                    if (ent == _mms.RepID)
-                    {
-                        <option value="@ent" selected="selected">@ent</option>
-                    }
-                    else
-                    {
-                        <option value="@ent">@ent</option>
-                    }
-                }
-            </select>
-        </div>
-    </div>
-</form>
+<div>
+    <h4>
+        <span class="badge @InfoBadge border border-info mr-2">
+            @InfoBadgeMsg
+        </span>
+    </h4>
+</div>
 <div class="form-group">
     <label for="i_replay">Choose replay</label>
-    <input type="file" @ref=inputTypeFileElement id="i_replay" name="replay" accept=".SC2Replay"/>
+    <input type="file" @ref=inputTypeFileElement id="i_replay" name="replay" accept=".SC2Replay" />
 </div>
 <!--
 <div class="input-group mb-3 w-50">
@@ -94,14 +71,14 @@
     <button class="btn btn-primary btn-sm" @onclick="@(() => _state.Update = !_state.Update)">Refresh</button>
     <!--<textarea style="max-width: 100%; overflow-y:scroll; " cols="40" rows="5">@Output</textarea>-->
 </div>
-<br />
+@if (myreplay != null)
+{
+<div class="container-fluid">
+    <Game replay="myreplay" _pl="@(new MMplayerNG())" />
+</div>
+}
 
 @code {
-    [Parameter]
-    public MMserviceNG _mms { get; set; }
-    [Parameter]
-    public MMplayerNG _pl { get; set; }
-
     ElementReference inputTypeFileElement;
     ElementReference dropTargetElement;
 
@@ -119,6 +96,10 @@
     byte[] buffer;
     string FileName = "Choose replay";
 
+    string InfoBadge = "badge-info";
+    string InfoBadgeMsg = "Upload";
+
+    dsreplay myreplay = null;
 
     protected override async Task OnAfterRenderAsync(bool isFirstRender)
     {
@@ -168,46 +149,8 @@
 
     public async Task ReadFile()
     {
-
-        if (!_repserv.CheckName(_pl.Name))
-        {
-            _mms.InfoBadge = "badge-danger";
-            _mms.InfoBadgeMsg = "Invalid Name";
-            return;
-        }
-
-        if (_mms.RepID == 0)
-        {
-            Output = "Please select a valid MMID.";
-            return;
-        }
-
-        if (_mm.Games.Select(s => s.ID == _mms.RepID).Count() == 0)
-        {
-            Output = "Please select a valid MMID.";
-            _mms.InfoBadge = "badge-danger";
-            _mms.InfoBadgeMsg = "Invalid MMID";
-            return;
-        }
-
         Output = string.Empty;
         this.StateHasChanged();
-
-        _mms.InfoBadge = "badge-info";
-        _mms.InfoBadgeMsg = "Reporting";
-
-        _state.Update = !_state.Update;
-
-        if (_startUp.replays.ContainsKey(_mms.RepID))
-            if (_startUp.replays[_mms.RepID].Count() >= 6)
-                return;
-
-        string upRep = Program.replaydir + "/" + _mms.RepID + "_" + _pl.Name + ".SC2Replay";
-        if (File.Exists(upRep))
-        {
-            Output = "File already uploaded. If you choose the wrong replay please contact the admin.";
-            return;
-        }
 
         int i = 0;
         bool valid = true;
@@ -219,6 +162,8 @@
             {
                 valid = false;
                 Output += "Only one file upload is allowed.";
+                InfoBadge = "badge-danger";
+                InfoBadgeMsg = "Only one file to upload is allowed.";
                 break;
             }
             (valid, fileBytes) = await GetFile(file);
@@ -231,6 +176,8 @@
             {
                 valid = false;
                 Output += "Only one file upload is allowed.";
+                InfoBadge = "badge-danger";
+                InfoBadgeMsg = "Only one file to upload is allowed.";
                 break;
             }
             (valid, fileBytes) = await GetFile(file);
@@ -240,62 +187,47 @@
         if (i == 0)
         {
             Output = "Pelase select one file.";
+            InfoBadge = "badge-danger";
+            InfoBadgeMsg = "Pelase select one file";
+            StateHasChanged();
             return;
         }
         if (valid == true && _mm != null)
         {
+            DateTime t = DateTime.UtcNow;
+
+            string upRep = Program.myreplaydir + "/" + t.ToString("yyyyMMddHHmmss") + ".SC2Replay";
+            while (File.Exists(upRep))
+            {
+                t.AddSeconds(1);
+                upRep = Program.myreplaydir + "/" + t.ToString("yyyyMMddHHmmss") + ".SC2Replay";
+            }
+
             await File.WriteAllBytesAsync(upRep, Concat(fileBytes.Values.ToArray()));
             Output += "Decoding replay..." + Environment.NewLine;
-            _mms.InfoBadge = "badge-info";
-            _mms.InfoBadgeMsg = "Decoding ..";
+            InfoBadge = "badge-info";
+            InfoBadgeMsg = "Decoding ..";
             StateHasChanged();
-            dsreplay replay = await _repserv.Decode(upRep, _mms.RepID);
-            Output += "Reporting replay .." + Environment.NewLine;
-            _mms.InfoBadge = "badge-info";
-            _mms.InfoBadgeMsg = "Reporting ..";
-            StateHasChanged();
-            int quality = await _repserv.CheckValid(replay, _mm.Games.Where(x => x.ID == _mms.RepID).FirstOrDefault());
-            if (!_mm.Reports.ContainsKey(replay.ID))
+            dsreplay replay = await _repserv.Decode(upRep, int.Parse(t.ToString("MMddHHmmss")));
+            if (replay == null)
             {
-                MMgameNG report;
-                MMgameNG racereport;
-                (report, racereport) = await Task.Run(() => { return MMrating.RateGame(replay, _startUp, _mm.Games.Where(x => x.ID == replay.ID).FirstOrDefault().Lobby); });
-                if (report != null)
-                {
-                    report.ID = _mms.RepID;
-                    //report.Valid = await _repserv.CheckValid(replay, report);
-                    report.Valid = quality;
-                    _mm.Reports[replay.ID] = report;
-                    _mms.InfoBadge = "badge-success";
-                    _mms.InfoBadgeMsg = "Reported";
-                    await _repserv.Save(report);
-                    _mm.Replays.Add(replay);
-                    if (racereport != null)
-                        await _repserv.SaveRace(racereport);
-                }
-                else
-                {
-                    _mms.InfoBadge = "badge-danger";
-                    _mms.InfoBadgeMsg = "Report failed";
-                }
+                InfoBadge = "badge-danger";
+                InfoBadgeMsg = "Decoding Replay failed.";
             }
             else
             {
-                if (quality > _mm.Reports[_mms.RepID].Valid)
-                {
-
-                }
-                _mms.InfoBadge = "badge-success";
-                _mms.InfoBadgeMsg = "Reported";
+                _startUp.MyReplays.Add(replay);
+                myreplay = replay;
+                InfoBadge = "badge-success";
+                InfoBadgeMsg = "Replay successfully decoded";
+                StateHasChanged();
             }
-            _mms.ReportIsClicked = false;
-            _state.Update = !_state.Update;
-        } else
+        }
+        else
         {
-            _mms.InfoBadge = "badge-danger";
-            _mms.InfoBadgeMsg = "Report failed";
+            InfoBadge = "badge-danger";
+            InfoBadgeMsg = "Upload failed";
             Output = "Upload failed :(";
-            _state.Update = !_state.Update;
         }
     }
 
@@ -318,16 +250,6 @@
             Output += "File size exceeds limit.";
             valid = false;
         }
-        TimeSpan t = new TimeSpan();
-        t = DateTime.Now - Convert.ToDateTime(fileInfo.LastModifiedDate);
-        t = t.Duration();
-        if (t.Days > 1)
-        {
-            Output += "Not a valid replay.";
-            valid = false;
-            return (valid, null);
-        }
-
 
         using (var fs = await file.OpenReadAsync())
         {
@@ -358,12 +280,6 @@
         }
         this.StateHasChanged();
         return (valid, fileBytes);
-    }
-
-    void Close()
-    {
-        _mms.ReportIsClicked = false;
-        _state.Update = !_state.Update;
     }
 
     public static byte[] Concat(params byte[][] arrays)

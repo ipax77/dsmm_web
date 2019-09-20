@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 using sc2dsstats.Data;
 using System.Collections.Concurrent;
 using System.Threading;

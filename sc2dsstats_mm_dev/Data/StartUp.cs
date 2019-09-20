@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Concurrent;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 using Microsoft.EntityFrameworkCore;
 using DSmm.Models;
 using sc2dsstats.Data;
@@ -22,15 +22,16 @@ namespace dsmm_server.Data
         public ConcurrentDictionary<string, MMplayerNG> MMplayers { get; set; } = new ConcurrentDictionary<string, MMplayerNG>();
         public ConcurrentDictionary<string, MMplayerNG> MMraces { get; set; } = new ConcurrentDictionary<string, MMplayerNG>();
         public ConcurrentDictionary<int, List<dsreplay>> replays = new ConcurrentDictionary<int, List<dsreplay>>();
+        public List<dsreplay> MyReplays { get; set; } = new List<dsreplay>();
         public HashSet<string> repHash = new HashSet<string>();
         public Dictionary<string, string> Auth = new Dictionary<string, string>();
-
         private DbContextOptions<MMdb> _mmdb;
+        public MMdb _db { get; set; }
 
         public StartUp(DbContextOptions<MMdb> mmdb)
         {
             _mmdb = mmdb;
-
+            _db = new MMdb(_mmdb);
             foreach (string cmdr in DSdata.s_races)
                 MMraces.TryAdd(cmdr, new MMplayerNG(cmdr));
 
@@ -96,10 +97,27 @@ namespace dsmm_server.Data
                 }
             }
 
+            if (!File.Exists(Program.myReplays_file))
+                File.Create(Program.myReplays_file).Dispose();
+
+            foreach (var line in File.ReadAllLines(Program.myReplays_file))
+            {
+                dsreplay rep = null;
+                try
+                {
+                    rep = JsonSerializer.Deserialize<dsreplay>(line);
+                }
+                catch { }
+                if (rep != null)
+                {
+                    MyReplays.Add(rep);
+                }
+            }
+
             // ladder init
 
             //LadderInit();
-            
+
         }
 
         async Task LadderInit()

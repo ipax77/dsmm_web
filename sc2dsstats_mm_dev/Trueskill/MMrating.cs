@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DSmm.Models;
 using dsmm_server.Data;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 using Moserware.Skills;
 
 namespace DSmm.Trueskill

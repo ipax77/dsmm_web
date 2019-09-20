@@ -1,6 +1,6 @@
 ﻿@page "/gamechart"
 @using System.IO;
-@using sc2dsstats.Models;
+@using pax.s2decode.Models;
 @using sc2dsstats.Data;
 @using DSmm.Repositories;
 @using dsmm_server.Data;
@@ -184,10 +184,12 @@
 
                     if (mid.Key >= ent)
                     {
-                        if (mid.Value == 0)
+                        if (mid.Value == 1)
                             myMid[ent] = 10000;
-                        else if (mid.Value == 1)
+                        else if (mid.Value == 2)
                             myMid[ent] = 20000;
+                        else
+                            myMid[ent] = 0;
 
                         lastmid = myMid[ent];
                         break;

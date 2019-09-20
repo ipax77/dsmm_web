@@ -125,7 +125,7 @@ namespace sc2dsstats.Data
         public int Icons { get; set; } = 0;
         public bool OPT { get; set; } = false;
         public bool DOIT { get; set; } = true;
-        public Models.dsfilter fil { get; set; } = new Models.dsfilter();
+        public pax.s2decode.Models.dsfilter fil { get; set; } = new pax.s2decode.Models.dsfilter();
         //public ChartJS Chart { get; set; } = new ChartJS();
         public int Total { get; set; } = 0;
         public Dictionary<string, bool> Gamemodes { get; set; } = new Dictionary<string, bool>();

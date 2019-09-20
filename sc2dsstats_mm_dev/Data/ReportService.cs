@@ -1,8 +1,6 @@
 ﻿using DSmm.Models;
-using DSmm.Trueskill;
-using sc2dsstats.Models;
-using s2decode;
-using System;
+using pax.s2decode;
+using pax.s2decode.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
@@ -16,22 +14,21 @@ namespace dsmm_server.Data
 {
     public class ReportService
     {
-        private S2decode _s2dec;
         private StartUp _startUp;
-        private ScanStateChange _scan;
-        private MMdb _db;
+        private s2decode _s2dec;
+
 
         private object dec_lock { get; set; } = new object();
 
-        public ReportService(S2decode s2dec, StartUp startup, ScanStateChange scan, MMdb db)
+        public ReportService(StartUp startup)
         {
-            _s2dec = s2dec;
             _startUp = startup;
-            _scan = scan;
-            _db = db;
+            _s2dec = new s2decode();
+            _s2dec.DEBUG = 1;
             Dictionary<string, string> repFolder = new Dictionary<string, string>();
             repFolder.Add(Program.replaydir, Program.replaydir);
-            _s2dec.LoadEngine(0, repFolder);
+            string mypath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            _s2dec.LoadEngine(mypath);
         }
 
         public async Task<dsreplay> Decode(string rep, int mmid, bool saveit = true)
@@ -41,7 +38,7 @@ namespace dsmm_server.Data
                 dsreplay replay = null;
                 lock (dec_lock)
                 {
-                    replay = _s2dec.DecodePython(rep, saveit);
+                    replay = _s2dec.DecodePython(rep, false, true);
                     if (replay != null)
                         replay.ID = mmid;
                     if (_startUp.replays.ContainsKey(mmid))
@@ -94,7 +91,7 @@ namespace dsmm_server.Data
             foreach (var pl in game.GetPlayers())
             {
                 if (pl.Name.StartsWith("Random") || pl.Name.StartsWith("Dummy")) continue;
-                var dbpl = _db.MMdbPlayers.Where(x => x.Name == pl.Name).FirstOrDefault();
+                var dbpl = _startUp._db.MMdbPlayers.Where(x => x.Name == pl.Name).FirstOrDefault();
                 if (dbpl != null)
                 {
                     foreach (var rat in pl.Rating[game.Lobby].Where(x => x.Db == false).OrderBy(o => o.Time).ToArray())
@@ -108,11 +105,11 @@ namespace dsmm_server.Data
                         dbrat.MMdbPlayerId = dbpl.MMdbPlayerId;
                         dbrat.MMdbPlayer = dbpl;
                         rat.Db = true;
-                        _db.MMdbRatings.Add(dbrat);
+                        _startUp._db.MMdbRatings.Add(dbrat);
                     }
                 }
             }
-            await _db.SaveChangesAsync();
+            await _startUp._db.SaveChangesAsync();
             // **/
             string output = Program.workdir + "/games/" + game.ID + "_report.json";
             if (!File.Exists(output))
@@ -129,7 +126,7 @@ namespace dsmm_server.Data
             // /**
             foreach (var pl in game.GetPlayers())
             {
-                var dbpl = _db.MMdbRaces.Where(x => x.Name == pl.Name).FirstOrDefault();
+                var dbpl = _startUp._db.MMdbRaces.Where(x => x.Name == pl.Name).FirstOrDefault();
                 if (dbpl != null)
                 {
                     foreach (var rat in pl.Rating[game.Lobby].Where(x => x.Db == false).OrderBy(o => o.Time).ToArray())
@@ -143,11 +140,11 @@ namespace dsmm_server.Data
                         dbrat.MMdbRaceId = dbpl.MMdbRaceId;
                         dbrat.MMdbRace = dbpl;
                         rat.Db = true;
-                        _db.MMdbRaceRatings.Add(dbrat);
+                        _startUp._db.MMdbRaceRatings.Add(dbrat);
                     }
                 }
             }
-            await _db.SaveChangesAsync();
+            await _startUp._db.SaveChangesAsync();
             // **/
         }
 

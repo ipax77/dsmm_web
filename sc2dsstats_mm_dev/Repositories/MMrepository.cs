@@ -15,7 +15,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 
 namespace DSmm.Repositories
 {

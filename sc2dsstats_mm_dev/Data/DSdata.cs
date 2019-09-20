@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 using sc2dsstats;
 
 namespace sc2dsstats.Data

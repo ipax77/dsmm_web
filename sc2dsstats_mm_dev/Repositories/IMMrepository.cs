@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 
 namespace DSmm.Repositories
 {

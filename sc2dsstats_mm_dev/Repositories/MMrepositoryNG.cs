@@ -19,7 +19,7 @@ using System.Runtime.CompilerServices;
 using DSmm.Repositories;
 using dsmm_server.Data;
 using sc2dsstats_mm_dev;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 
 namespace dsmm_server.Repositories
 {

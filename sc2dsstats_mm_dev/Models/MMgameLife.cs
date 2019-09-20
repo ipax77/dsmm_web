@@ -1,5 +1,5 @@
 ﻿using DSmm.Models;
-using sc2dsstats.Models;
+using pax.s2decode.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
