@@ -28,6 +28,7 @@ namespace dsmm_server.Data
         public Dictionary<string, string> Auth = new Dictionary<string, string>();
         private DbContextOptions<MMdb> _mmdb;
         public MMdb _db { get; set; }
+        public string Exedir { get; set; }
 
         public StartUp(DbContextOptions<MMdb> mmdb)
         {
@@ -116,6 +117,7 @@ namespace dsmm_server.Data
             }
 
             string exedir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            Exedir = exedir;
             foreach (var file in Directory.EnumerateFiles(Program.replaydir))
             {
                 string dest = exedir + "/replays/" + Path.GetFileName(file);

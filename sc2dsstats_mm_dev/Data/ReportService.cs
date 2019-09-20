@@ -40,11 +40,15 @@ namespace dsmm_server.Data
 
         public FileStreamResult GetFileAsStream(string file)
         {
-            var stream = _fileProvider
-                .GetFileInfo(file)
-                .CreateReadStream();
+            if (File.Exists(_startUp.Exedir + "/" + file))
+            {
+                var stream = _fileProvider
+                    .GetFileInfo(file)
+                    .CreateReadStream();
 
-            return new FileStreamResult(stream, "application/octet-stream");
+                return new FileStreamResult(stream, "application/octet-stream");
+            } else
+                return null;
         }
 
         public async Task<dsreplay> Decode(string rep, int mmid, bool saveit = true)
@@ -59,16 +63,21 @@ namespace dsmm_server.Data
                     if (replay != null)
                     {
                         replay.ID = mmid;
+                        replay.REPLAY = rep;
                         var json = JsonSerializer.Serialize(replay);
                         File.AppendAllText(Program.myJson_file, json + Environment.NewLine);
+
+                        if (_startUp.replays.ContainsKey(mmid))
+                            _startUp.replays[mmid].Add(replay);
+                        else
+                        {
+                            _startUp.replays.TryAdd(mmid, new List<dsreplay>());
+                            _startUp.replays[mmid].Add(replay);
+                        }
+                        string dest = _startUp.Exedir + "/replays/" + Path.GetFileName(rep);
+                        File.Copy(rep, dest);
+
                     }
-                    if (_startUp.replays.ContainsKey(mmid))
-                        _startUp.replays[mmid].Add(replay);
-                    else
-                    {
-                        _startUp.replays.TryAdd(mmid, new List<dsreplay>());
-                        _startUp.replays[mmid].Add(replay);
-                    } 
                 }
                 return replay;
             });
@@ -86,9 +95,12 @@ namespace dsmm_server.Data
                     if (replay != null)
                     {
                         replay.ID = mmid;
+                        replay.REPLAY = rep;
                         var json = JsonSerializer.Serialize(replay);
                         File.AppendAllText(Program.myReplays_file, json + Environment.NewLine);
                         _startUp.MyReplays.Add(replay);
+                        string dest = _startUp.Exedir + "/replays/" + Path.GetFileName(rep);
+                        File.Copy(rep, dest);
                     }
                 }
                 return replay;
