@@ -22,7 +22,8 @@ using sc2dsstats.Data;
 using DSmm.Repositories;
 using dsmm_server.Repositories;
 using DSmm;
-
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace sc2dsstats_mm_dev
 {
@@ -82,6 +83,31 @@ namespace sc2dsstats_mm_dev
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            string basePath = Environment.GetEnvironmentVariable("ASPNETCORE_BASEPATH");
+            if (!string.IsNullOrEmpty(basePath))
+            {
+                app.Use((context, next) =>
+                {
+                    context.Request.Scheme = "https";
+                    return next();
+                });
+
+                app.Use((context, next) =>
+                {
+                    context.Request.PathBase = new PathString(basePath);
+                    if (context.Request.Path.StartsWithSegments(basePath, out var remainder))
+                    {
+                        context.Request.Path = remainder;
+                    }
+                    return next();
+                });
+            }
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                //ForwardedHeaders = ForwardedHeaders.All
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
