@@ -5,6 +5,8 @@
 @using pax.s2decode.Models;
 @using sc2dsstats.Data
 @using DSmm.Models;
+@using dsmm_server.Data;
+@inject StartUp _startUp
 
 @if (replay != null)
 {
@@ -137,6 +139,7 @@
                                         <th></th>
                                     }
                                     <th>Build</th>
+                                    <th>Player</th>
                                     <th>Cmdr</th>
                                     <th>Army</th>
                                     <th>Kills</th>
@@ -163,6 +166,13 @@
                                         <td>@pl.REALPOS</td>
                                         <td width="30px"><img alt="img_@pl.RACE" longdesc="img_@pl.RACE" src="@DSdata.GetIcon(@pl.RACE)" width="30" height="30" /></td>
                                         <td><input id="build_@pl.RACE\_@pl.REALPOS" name="build_@pl.RACE" type="checkbox" checked="@BuildCheck[pl.REALPOS]" /></td>
+                                        @if (_startUp.MMplayers.ContainsKey(pl.NAME))
+                                        {
+                                            <td>@pl.NAME</td>
+                                        } else
+                                        {
+                                            <td>Dummy</td>
+                                        }
                                         <td>@pl.RACE</td>
                                         <td>@(Math.Round((double)pl.ARMY / 1000, 2))k</td>
                                         <td>@(Math.Round((double)pl.KILLSUM / 1000, 2))k</td>

@@ -3,12 +3,436 @@
 @using Microsoft.AspNetCore.Components;
 @using System.ComponentModel;
 @using dsmm_server.Data;
+@using sc2dsstats.Data;
 @using pax.s2decode.Models;
+@using sc2dsstats_mm_dev.Models;
+@using sc2dsstats.Models;
+@using DSmm.Models;
+@using System.IO;
+@inject DSdyn_filteroptions _options
 @inject NavigationManager NavigationManager
 @inject StartUp _startUp
+@inject ReportService _repserv
+@implements IDisposable
 
 <h3>LadderReplays</h3>
+<div class="row mb-2">
+    <button class="btn btn-secondary mr-3" @onclick="@ToggleFilter">Filter</button>
+    <!--<button class="btn btn-secondary mr-3" @onclick="@(async() => await _repserv.ReScan())">Rescan</button>-->
+<button class="btn btn-secondary mr-3" @onclick="@(async () => await _startUp.Reload())">Reload</button>
+</div>
+<div class="@FilterClass" id="div_filter">
+    <div class="card card-body">
+        <Filter />
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="w-50">
+            <div class="row">
+                @foreach (var opt in RepOpt.Opt.Keys)
+                {
+                <div class="custom-control custom-checkbox ml-1 w-auto">
+                    <input type="checkbox" class="custom-control-input" name="cb_opt" id="cb_opt_@opt" @bind="@RepOpt.Opt[opt]" />
+                    <label class="custom-control-label" for="cb_opt_@opt">@opt</label>
+                </div>
+                }
+            </div>
+            <h5>Total: @myReplays.Count() (@skip-@(take + skip))</h5>
+            <table class="table table-sm table-hover table-dark">
+                <thead>
+                    <tr>
+                        @foreach (var opt in RepOpt.Opt.Keys)
+                        {
+                        @if (RepOpt.Opt[opt] == true)
+                            {
+                        <th scope="col"><span class="sort-link" @onclick="@(() => SortReps(opt))">@opt</span></th>
+                            }
+                        }
+                        <th>Download</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ent in myReplays.Skip(skip).Take(take))
+                    {
+                    @if (replay_id == ent.ID)
+                        {
+                    <tr class="table-info table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
+                        @foreach (var opt in RepOpt.Opt.Keys)
+                        {
+                            if (RepOpt.Opt[opt] == true)
+                            {
+                                <td>@GetRepProperty(ent, opt)</td>
+                            }
+                        }
+                        <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
+                    </tr>
+
+                        }
+                        else
+                        {
+                    <tr class="table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
+                        @foreach (var opt in RepOpt.Opt.Keys)
+                        {
+                            if (RepOpt.Opt[opt] == true)
+                            {
+                                <td>@GetRepProperty(ent, opt)</td>
+                            }
+                        }
+                        <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
+                    </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <div class="row">
+                <button class="btn btn-sm mr-1" @onclick="@Skip">&lt&lt</button>
+                <button class="btn btn-sm" @onclick="@Take">&gt&gt</button>
+            </div>
+        </div>
+        <div class="w-auto mb-2">
+            <button class="btn btn-primary" @onclick="@DoFind">Find</button>
+            <button class="btn btn-primary mr-3" @onclick="@Reset">Reset</button>
+            <h5>Find</h5>
+            <div class="container-fluid">
+                @for (int i = 0; i < DBFindDic.Count(); i++)
+                {
+                    var ent = DBFindDic[i];
+                    ent.ID = i;
+                <div class="row">
+                    @if (i > 0 && i == DBFindDic.Count() - 1)
+                        {
+                    <button class="btn btn-secondary btn-sm mr-2" style="max-height: 35px !important;" @onclick="@(() => @RemoveDBFind(ent.ID))">-</button>
+                        }
+                    <div class="form-group mr-1">
+                        <label for="filter_@i">
+                            Race @i
+                        </label>
+                        <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACE">
+                            <option selected="selected"></option>
+                            @foreach (var opt in DSdata.s_races)
+                                {
+                            <option value=@opt>@opt</option>
+                                }
+                        </select>
+                    </div>
+                    <div class="form-group mr-1">
+                        <label for="filter_@i">
+                            vs Race @i
+                        </label>
+                        <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACEVS">
+                            <option selected="selected"></option>
+                            @foreach (var opt in DSdata.s_races)
+                                {
+                            <option value=@opt>@opt</option>
+                                }
+                        </select>
+                    </div>
+                    <div class="custom-control custom-checkbox mr-1">
+                        <input type="checkbox" class="custom-control-input" name="cbfil_player_@i" id="cbfil_player_@i" @bind="@ent.PLAYER" />
+                        <label class="custom-control-label" for="cbfil_player_@i">Player</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <!--
+                    <div>
+                        <div class="custom-control custom-radio mr-1">
+                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitGr_@i" checked="checked" @onchange="@(() => ent.UNITMOD = ">")" />
+                            <label class="custom-control-label" for="cbfil_unitGr_@i">&gt;</label>
+                        </div>
+                        <div class="custom-control custom-radio mr-1">
+                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitEq_@i" @onchange="@(() => ent.UNITMOD = "=")" />
+                            <label class="custom-control-label" for="cbfil_unitEq_@i">=</label>
+                        </div>
+                        <div class="custom-control custom-radio mr-1">
+                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitLo_@i" @onchange="@(() => ent.UNITMOD = "<")" />
+                            <label class="custom-control-label" for="cbfil_unitLo_@i">&lt;</label>
+                        </div>
+                    </div>
+                    <div>
+
+                    <div>
+                        <MatAutocomplete Collection="@DSdata.s_units" ItemType="string" @bind-Value="@ent.UNIT" Label="Unit"></MatAutocomplete>
+                    </div>
+                    <div class="input-group mr-1">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="cbfil_unitCL_@i">Count</span>
+                        </div>
+                        <input type="number" class="form-control" name="cbfil_unitC_@i" id="cbfil_unitC_@i" aria-describedby="dbfil_unitCL_@i" @bind="@ent.UNITCOUNT" />
+                    </div>
+
+                </div>
+                -->
+                </div>
+                }
+            </div>
+            <div>
+                <p>
+                    <button class="btn btn-secondary btn-sm" @onclick="@AddDBFind">+</button>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<br />
+<div class="container-fluid @GameClass">
+    <Game replay="replay" _pl="@(new MMplayerNG())" />
+    <label>@ladderstring</label>
+</div>
 
 @code {
+    [Parameter]
+    public int RepId { get; set; }
+
+    private string GameClass = "colapsed";
+    private dsreplay replay;
+    int skip = 0;
+    int take = 12;
+    string last = "";
+    bool chart = false;
+    IEnumerable<dsreplay> myReplays;
+    int replay_id = 0;
+    ReplayOptions RepOpt = new ReplayOptions();
+    string FilterClass => _options.Filter ? null : "collapse";
+    string mb = "";
+    string ladderstring = "";
+
+    public class DBFilter
+    {
+        public string Value { get; set; } = "";
+        public string Opt { get; set; } = "Filter1";
+    }
+    Dictionary<int, DBFilter> DBFilterDic;
+    Dictionary<int, DBFind> DBFindDic;
+
+    protected override void OnInitialized()
+    {
+        DBFilterDic = new Dictionary<int, DBFilter>();
+        DBFilterDic.Add(0, new DBFilter());
+        DBFindDic = new Dictionary<int, DBFind>();
+        DBFindDic.Add(0, new DBFind());
+
+        List<dsreplay> temp = new List<dsreplay>();
+        foreach (var ent in _startUp.replays)
+            temp.Add(ent.Value.First());
+
+        myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
+
+        RepId = RepId;
+        if (myReplays.Count() > 0 && (RepId == null || RepId == 0))
+            RepId = myReplays.First().ID;
+
+        ShowGame(RepId);
+        _options.PropertyChanged += OptionChanged;
+    }
+
+    void Skip()
+    {
+        skip -= 12;
+        if (skip < 0 || take < 0)
+        {
+            skip = 0;
+            take = 12;
+        }
+    }
+
+    void Take()
+    {
+        skip += 12;
+    }
+
+    void ToggleFilter()
+    {
+        _options.Filter = !_options.Filter;
+    }
+    void Reset()
+    {
+        skip = 0;
+        take = 12;
+        DBFilterDic = new Dictionary<int, DBFilter>();
+        DBFilterDic.Add(0, new DBFilter());
+        DBFindDic = new Dictionary<int, DBFind>();
+        DBFindDic.Add(0, new DBFind());
+        List<dsreplay> temp = new List<dsreplay>();
+        foreach (var ent in _startUp.replays)
+            temp.Add(ent.Value.First());
+
+        myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
+    }
+
+    void AddDBFilter()
+    {
+        int nk = -1;
+        try
+        {
+            nk = DBFilterDic.Keys.OrderByDescending(x => x).First();
+        }
+        catch { }
+        DBFilterDic.Add(nk + 1, new DBFilter());
+    }
+
+    void AddDBFind()
+    {
+        int nk = -1;
+        try
+        {
+            nk = DBFindDic.Keys.OrderByDescending(x => x).First();
+        }
+        catch { }
+        DBFindDic.Add(nk + 1, new DBFind());
+    }
+
+    void RemoveDBFind(int i)
+    {
+        DBFindDic.Remove(i);
+    }
+
+    string GetRepProperty(dsreplay rep, string prop)
+    {
+        return rep.GetType().GetProperty(prop).GetValue(rep, null).ToString();
+    }
+
+    public async void SortReps(string id)
+    {
+        if (last == id)
+        {
+            myReplays = myReplays.OrderByDescending(o => o.GetType().GetProperty(id).GetValue(o, null)).ToList();
+            last = "";
+        }
+        else
+        {
+            myReplays = myReplays.OrderBy(o => o.GetType().GetProperty(id).GetValue(o, null)).ToList();
+            last = id;
+        }
+    }
+
+    void DoFind()
+    {
+        List<dsreplay> temp = new List<dsreplay>();
+        foreach (var ent in _startUp.replays)
+            temp.Add(ent.Value.First());
+
+        myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
+
+        foreach (var dic in DBFindDic.Keys)
+        {
+            var ent = DBFindDic[dic];
+
+            if (ent.RACE.Length > 0)
+            {
+                if (ent.PLAYER == false)
+                {
+                    myReplays = myReplays.Where(x => x.RACES.Contains(ent.RACE));
+                }
+                else
+                {
+                    myReplays = myReplays.Where(x => x.PLAYERS.Exists(y => y.NAME == "player" && y.RACE == ent.RACE));
+                }
+            }
+
+            if (ent.RACE.Length > 0 && ent.RACEVS.Length > 0)
+            {
+                if (ent.PLAYER == false)
+                {
+                    myReplays = myReplays.Where(x => x.PLAYERS.Exists(y => y.RACE == ent.RACE && x.GetOpp(y.REALPOS).RACE == ent.RACEVS));
+                }
+                else
+                {
+                    myReplays = myReplays.Where(x => x.PLAYERS.Exists(y => y.NAME == "player" && y.RACE == ent.RACE && x.GetOpp(y.REALPOS).RACE == ent.RACEVS));
+                }
+            }
+
+            if (ent.UNIT.Length > 0)
+            {
+                if (ent.UNITMOD == ">")
+                    myReplays = myReplays.Where(x => x.PLAYERS.Where(y => y.UNITS.ContainsKey("ALL") && y.UNITS["ALL"].ContainsKey(ent.UNIT) && y.UNITS["ALL"][ent.UNIT] > ent.UNITCOUNT).Count() > 0).ToList();
+                else if (ent.UNITMOD == "=")
+                    myReplays = myReplays.Where(x => x.PLAYERS.Where(y => y.UNITS.ContainsKey("ALL") && y.UNITS["ALL"].ContainsKey(ent.UNIT) && y.UNITS["ALL"][ent.UNIT] == ent.UNITCOUNT).Count() > 0).ToList();
+                else if (ent.UNITMOD == "<")
+                    myReplays = myReplays.Where(x => x.PLAYERS.Where(y => y.UNITS.ContainsKey("ALL") && y.UNITS["ALL"].ContainsKey(ent.UNIT) && y.UNITS["ALL"][ent.UNIT] < ent.UNITCOUNT).Count() > 0).ToList();
+            }
+        }
+
+    }
+
+    private async void OptionChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (_options.DOIT == true)
+        {
+            if (e.PropertyName == "Filter") { StateHasChanged(); }
+            else
+            {
+                List<dsreplay> temp = new List<dsreplay>();
+                foreach (var ent in _startUp.replays)
+                    temp.Add(ent.Value.First());
+
+                DSfilter fil = new DSfilter();
+                myReplays = await Task.Run(() => { return fil.Filter(temp); });
+            }
+        }
+    }
+
+    public async Task ShowGame(int repid)
+    {
+        GameClass = "null";
+        replay = myReplays.Where(x => x.ID == repid).FirstOrDefault();
+        if (replay != null)
+        {
+            replay_id = replay.ID;
+            NavigationManager.NavigateTo("ladderreplays/" + replay_id);
+            RepId = replay_id;
+            ladderstring = await GetReplayString(replay);
+        }
+    }
+
+    public void Dispose()
+    {
+        _options.PropertyChanged -= OptionChanged;
+    }
+
+
+    async Task<string> GetReplayString(dsreplay game)
+    {
+        string result1 = "";
+        string result2 = "";
+        string result = "unknown";
+        if (game != null)
+        {
+            await Task.Run(() =>
+            {
+                foreach (dsplayer player in game.PLAYERS.OrderBy(o => o.REALPOS))
+                {
+                    if (player.REALPOS <= game.PLAYERCOUNT / 2)
+                    {
+                        result1 += "(" + player.NAME + ", " + player.RACE + ", " + player.KILLSUM + ")";
+                        if (player.REALPOS != game.PLAYERCOUNT / 2)
+                        {
+                            result1 += ", ";
+                        }
+                    }
+                    else if (player.REALPOS > game.PLAYERCOUNT / 2)
+                    {
+                        result2 += "(" + player.NAME + ", " + player.RACE + ", " + player.KILLSUM + ")";
+                        if (player.REALPOS != game.PLAYERCOUNT)
+                        {
+                            result2 += ", ";
+                        }
+
+                    }
+                }
+            });
+
+
+            if (game.WINNER == 0)
+            {
+                result = result1 + " vs " + result2;
+            }
+            else if (game.WINNER == 1)
+            {
+                result = result2 + " vs " + result1;
+            }
+        }
+        return result;
+    }
 
 }

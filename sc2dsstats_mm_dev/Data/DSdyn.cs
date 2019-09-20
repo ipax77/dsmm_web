@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using pax.s2decode.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -89,8 +90,8 @@ namespace sc2dsstats.Data
         private int Income_value = 1500;
         private int PlayerCount_value = 6;
         private bool Player_value = false;
-        private string Startdate_value = "2019-01-01";
-        private string Enddate_value = DateTime.Now.ToString("yyyy-MM-dd");
+        private DateTime Startdate_value = new DateTime(2019, 01, 01);
+        private DateTime Enddate_value = DateTime.Now.AddDays(2);
         private string Interest_value = String.Empty;
         private string Vs_value = String.Empty;
         private bool Matchup_value = false;
@@ -98,7 +99,6 @@ namespace sc2dsstats.Data
         private string Mode_value = "Winrate";
         private bool BeginAtZero_value = false;
         private string Build_value = String.Empty;
-        private string Gamemode_value = "Commanders";
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -125,8 +125,8 @@ namespace sc2dsstats.Data
         public int Icons { get; set; } = 0;
         public bool OPT { get; set; } = false;
         public bool DOIT { get; set; } = true;
-        public pax.s2decode.Models.dsfilter fil { get; set; } = new pax.s2decode.Models.dsfilter();
-        //public ChartJS Chart { get; set; } = new ChartJS();
+        public dsfilter fil { get; set; } = new dsfilter();
+        public ChartJS Chart { get; set; } = new ChartJS();
         public int Total { get; set; } = 0;
         public Dictionary<string, bool> Gamemodes { get; set; } = new Dictionary<string, bool>();
 
@@ -214,7 +214,7 @@ namespace sc2dsstats.Data
                 }
             }
         }
-        public string Startdate
+        public DateTime Startdate
         {
             get { return this.Startdate_value; }
             set
@@ -226,7 +226,7 @@ namespace sc2dsstats.Data
                 }
             }
         }
-        public string Enddate
+        public DateTime Enddate
         {
             get { return this.Enddate_value; }
             set
@@ -322,18 +322,6 @@ namespace sc2dsstats.Data
                 }
             }
         }
-        public string Gamemode
-        {
-            get { return this.Gamemode_value; }
-            set
-            {
-                if (value != this.Gamemode_value)
-                {
-                    this.Gamemode_value = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
 
         public string GenHash()
         {
@@ -350,14 +338,16 @@ namespace sc2dsstats.Data
                 else if (prop.Name == "Total") continue;
                 else if (prop.Name == "Ordered") continue;
 
-                if (prop.Name == "Enddate" && prop.GetValue(this, null).ToString() == DateTime.Now.AddDays(1).ToString("yyyy-MM-dd"))
+                if (prop.Name == "Enddate")
                 {
-                    opthash += prop.Name + "LaSt";
+                    DateTime t = (DateTime)prop.GetValue(this, null);
+                    if (t.ToString("yyyy-MM-dd") == DateTime.Now.AddDays(2).ToString("yyyy-MM-dd"))
+                        opthash += prop.Name + "LaSt";
                 }
                 else if (prop.Name == "Gamemodes")
                 {
                     Dictionary<string, bool> gm = prop.GetValue(this, null) as Dictionary<string, bool>;
-                    foreach (var ent in gm.Keys)
+                    foreach (var ent in gm.Keys.OrderBy(o => o))
                     {
                         opthash += gm[ent].ToString();
                     }

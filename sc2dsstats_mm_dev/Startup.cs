@@ -23,13 +23,17 @@ using DSmm.Repositories;
 using dsmm_server.Repositories;
 using DSmm;
 
+
 namespace sc2dsstats_mm_dev
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IWebHostEnvironment _env;
+
+        public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             Configuration = configuration;
+            _env = env;
         }
 
         public IConfiguration Configuration { get; }
@@ -60,9 +64,11 @@ namespace sc2dsstats_mm_dev
             services.AddScoped<MMserviceNG>();
             services.AddScoped<DSdyn>();
             services.AddScoped<GameChartService>();
+            services.AddScoped<DSdyn_filteroptions>();
 
             services.Configure<AppConfig>(Configuration);
-            
+
+            services.AddSingleton(_env.ContentRootFileProvider);
             services.AddSingleton<IMMrepository, MMrepository>();
             services.AddSingleton<IMMrepositoryNG, MMrepositoryNG>();
             services.AddSingleton<ReportService>();
@@ -98,6 +104,10 @@ namespace sc2dsstats_mm_dev
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}/{id?}"
+                );
                 endpoints.MapControllers();
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");

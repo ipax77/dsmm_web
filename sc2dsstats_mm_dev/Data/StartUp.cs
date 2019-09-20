@@ -11,6 +11,7 @@ using DSmm.Models;
 using sc2dsstats.Data;
 using sc2dsstats_mm_dev;
 using DSmm.Trueskill;
+using System.Reflection;
 
 namespace dsmm_server.Data
 {
@@ -114,10 +115,17 @@ namespace dsmm_server.Data
                 }
             }
 
+            string exedir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            foreach (var file in Directory.EnumerateFiles(Program.replaydir))
+            {
+                string dest = exedir + "/replays/" + Path.GetFileName(file);
+                if (!File.Exists(dest))
+                    File.Copy(file, dest);
+            }
+
             // ladder init
 
             //LadderInit();
-
         }
 
         async Task LadderInit()
@@ -186,6 +194,29 @@ namespace dsmm_server.Data
 
             }
             // **/
+        }
+
+        public async Task Reload()
+        {
+            replays.Clear();
+            await Task.Run(() => { 
+                foreach (var line in File.ReadAllLines(Program.myJson_file))
+                {
+                    dsreplay rep = null;
+                    try
+                    {
+                        rep = JsonSerializer.Deserialize<dsreplay>(line);
+                    } catch { }
+                    if (rep != null)
+                    {
+                        //rep.Init();
+                        repHash.Add(rep.HASH);
+                        if (!replays.ContainsKey(rep.ID))
+                            replays[rep.ID] = new List<dsreplay>();
+                        replays[rep.ID].Add(rep);
+                    }
+                }
+            });
         }
 
         public async Task Save(MMgameNG game)

@@ -9,6 +9,8 @@ using System.Text.Json;
 using dsmm_server.Models;
 using System.Text.RegularExpressions;
 using sc2dsstats_mm_dev;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Mvc;
 
 namespace dsmm_server.Data
 {
@@ -16,19 +18,31 @@ namespace dsmm_server.Data
     {
         private StartUp _startUp;
         private s2decode _s2dec;
+        private readonly IFileProvider _fileProvider;
 
 
         private object dec_lock { get; set; } = new object();
 
-        public ReportService(StartUp startup)
+        public ReportService(StartUp startup, IFileProvider fileProvider)
         {
             _startUp = startup;
+            _fileProvider = fileProvider;
             _s2dec = new s2decode();
-            _s2dec.DEBUG = 1;
+            _s2dec.DEBUG = 0;
+            _s2dec.JsonFile = Program.myJson_file;
             Dictionary<string, string> repFolder = new Dictionary<string, string>();
             repFolder.Add(Program.replaydir, Program.replaydir);
             string mypath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
             _s2dec.LoadEngine(mypath);
+        }
+
+        public FileStreamResult GetFileAsStream(string file)
+        {
+            var stream = _fileProvider
+                .GetFileInfo(file)
+                .CreateReadStream();
+
+            return new FileStreamResult(stream, "application/octet-stream");
         }
 
         public async Task<dsreplay> Decode(string rep, int mmid, bool saveit = true)
@@ -38,7 +52,8 @@ namespace dsmm_server.Data
                 dsreplay replay = null;
                 lock (dec_lock)
                 {
-                    replay = _s2dec.DecodePython(rep, false, true);
+                    _s2dec.REPID = mmid - 1;
+                    replay = _s2dec.DecodePython(rep, true, true);
                     if (replay != null)
                         replay.ID = mmid;
                     if (_startUp.replays.ContainsKey(mmid))
@@ -50,6 +65,27 @@ namespace dsmm_server.Data
                     } 
                 }
                 return replay;
+            });
+        }
+
+        public async Task ReScan()
+        {
+            File.Delete(Program.myJson_file);
+            File.Create(Program.myJson_file).Dispose();
+
+            await Task.Run(() => { 
+                foreach (string file in Directory.EnumerateFiles(Program.replaydir))
+                {
+                    Regex rx = new Regex(@"^(\d+)");
+                    string name = Path.GetFileName(file);
+                    Match m = rx.Match(name);
+                    if (m.Success)
+                    {
+                        int id = int.Parse(m.Groups[1].Value.ToString());
+                        _s2dec.REPID = id - 1;
+                        dsreplay rep = _s2dec.DecodePython(file, true, false);
+                    }
+                }
             });
         }
 
