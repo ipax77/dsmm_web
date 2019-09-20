@@ -1,5 +1,5 @@
-﻿@page "/ladderreplays"
-@page "/ladderreplays/{RepId:int}"
+﻿@page "/userreplays"
+@page "/userreplays/{RepId:int}"
 @using Microsoft.AspNetCore.Components;
 @using System.ComponentModel;
 @using dsmm_server.Data;
@@ -15,7 +15,7 @@
 @inject ReportService _repserv
 @implements IDisposable
 
-<h3>LadderReplays</h3>
+<h3>User Replays</h3>
 <div class="row mb-2">
     <button class="btn btn-secondary mr-3" @onclick="@ToggleFilter">Filter</button>
     <!--<button class="btn btn-secondary mr-3" @onclick="@(async() => await _repserv.ReScan())">Rescan</button>-->
@@ -32,10 +32,10 @@
             <div class="row">
                 @foreach (var opt in RepOpt.Opt.Keys)
                 {
-                <div class="custom-control custom-checkbox ml-1 w-auto">
-                    <input type="checkbox" class="custom-control-input" name="cb_opt" id="cb_opt_@opt" @bind="@RepOpt.Opt[opt]" />
-                    <label class="custom-control-label" for="cb_opt_@opt">@opt</label>
-                </div>
+                    <div class="custom-control custom-checkbox ml-1 w-auto">
+                        <input type="checkbox" class="custom-control-input" name="cb_opt" id="cb_opt_@opt" @bind="@RepOpt.Opt[opt]" />
+                        <label class="custom-control-label" for="cb_opt_@opt">@opt</label>
+                    </div>
                 }
             </div>
             <h5>Total: @myReplays.Count() (@skip-@(take + skip))</h5>
@@ -44,9 +44,9 @@
                     <tr>
                         @foreach (var opt in RepOpt.Opt.Keys)
                         {
-                        @if (RepOpt.Opt[opt] == true)
+                            @if (RepOpt.Opt[opt] == true)
                             {
-                        <th scope="col"><span class="sort-link" @onclick="@(() => SortReps(opt))">@opt</span></th>
+                                <th scope="col"><span class="sort-link" @onclick="@(() => SortReps(opt))">@opt</span></th>
                             }
                         }
                         <th>Download</th>
@@ -55,32 +55,32 @@
                 <tbody>
                     @foreach (var ent in myReplays.Skip(skip).Take(take))
                     {
-                    @if (replay_id == ent.ID)
+                        @if (replay_id == ent.ID)
                         {
-                    <tr class="table-info table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
-                        @foreach (var opt in RepOpt.Opt.Keys)
-                        {
-                            if (RepOpt.Opt[opt] == true)
-                            {
-                                <td>@GetRepProperty(ent, opt)</td>
-                            }
-                        }
-                        <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
-                    </tr>
+                            <tr class="table-info table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
+                                @foreach (var opt in RepOpt.Opt.Keys)
+                                {
+                                    if (RepOpt.Opt[opt] == true)
+                                    {
+                                        <td>@GetRepProperty(ent, opt)</td>
+                                    }
+                                }
+                                <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
+                            </tr>
 
                         }
                         else
                         {
-                    <tr class="table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
-                        @foreach (var opt in RepOpt.Opt.Keys)
-                        {
-                            if (RepOpt.Opt[opt] == true)
-                            {
-                                <td>@GetRepProperty(ent, opt)</td>
-                            }
-                        }
-                        <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
-                    </tr>
+                            <tr class="table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
+                                @foreach (var opt in RepOpt.Opt.Keys)
+                                {
+                                    if (RepOpt.Opt[opt] == true)
+                                    {
+                                        <td>@GetRepProperty(ent, opt)</td>
+                                    }
+                                }
+                                <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
+                            </tr>
                         }
                     }
                 </tbody>
@@ -99,71 +99,71 @@
                 {
                     var ent = DBFindDic[i];
                     ent.ID = i;
-                <div class="row">
-                    @if (i > 0 && i == DBFindDic.Count() - 1)
+                    <div class="row">
+                        @if (i > 0 && i == DBFindDic.Count() - 1)
                         {
-                    <button class="btn btn-secondary btn-sm mr-2" style="max-height: 35px !important;" @onclick="@(() => @RemoveDBFind(ent.ID))">-</button>
+                            <button class="btn btn-secondary btn-sm mr-2" style="max-height: 35px !important;" @onclick="@(() => @RemoveDBFind(ent.ID))">-</button>
                         }
-                    <div class="form-group mr-1">
-                        <label for="filter_@i">
-                            Race @i
-                        </label>
-                        <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACE">
-                            <option selected="selected"></option>
-                            @foreach (var opt in DSdata.s_races)
+                        <div class="form-group mr-1">
+                            <label for="filter_@i">
+                                Race @i
+                            </label>
+                            <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACE">
+                                <option selected="selected"></option>
+                                @foreach (var opt in DSdata.s_races)
                                 {
-                            <option value=@opt>@opt</option>
+                                    <option value=@opt>@opt</option>
                                 }
-                        </select>
-                    </div>
-                    <div class="form-group mr-1">
-                        <label for="filter_@i">
-                            vs Race @i
-                        </label>
-                        <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACEVS">
-                            <option selected="selected"></option>
-                            @foreach (var opt in DSdata.s_races)
+                            </select>
+                        </div>
+                        <div class="form-group mr-1">
+                            <label for="filter_@i">
+                                vs Race @i
+                            </label>
+                            <select class="form-control w-auto" id="sel_@i" @bind="@ent.RACEVS">
+                                <option selected="selected"></option>
+                                @foreach (var opt in DSdata.s_races)
                                 {
-                            <option value=@opt>@opt</option>
+                                    <option value=@opt>@opt</option>
                                 }
-                        </select>
-                    </div>
-                    <div class="custom-control custom-checkbox mr-1">
-                        <input type="checkbox" class="custom-control-input" name="cbfil_player_@i" id="cbfil_player_@i" @bind="@ent.PLAYER" />
-                        <label class="custom-control-label" for="cbfil_player_@i">Player</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <!--
-                    <div>
-                        <div class="custom-control custom-radio mr-1">
-                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitGr_@i" checked="checked" @onchange="@(() => ent.UNITMOD = ">")" />
-                            <label class="custom-control-label" for="cbfil_unitGr_@i">&gt;</label>
+                            </select>
                         </div>
-                        <div class="custom-control custom-radio mr-1">
-                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitEq_@i" @onchange="@(() => ent.UNITMOD = "=")" />
-                            <label class="custom-control-label" for="cbfil_unitEq_@i">=</label>
-                        </div>
-                        <div class="custom-control custom-radio mr-1">
-                            <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitLo_@i" @onchange="@(() => ent.UNITMOD = "<")" />
-                            <label class="custom-control-label" for="cbfil_unitLo_@i">&lt;</label>
+                        <div class="custom-control custom-checkbox mr-1">
+                            <input type="checkbox" class="custom-control-input" name="cbfil_player_@i" id="cbfil_player_@i" @bind="@ent.PLAYER" />
+                            <label class="custom-control-label" for="cbfil_player_@i">Player</label>
                         </div>
                     </div>
-                    <div>
+                    <div class="row">
+                        <!--
+                            <div>
+                                <div class="custom-control custom-radio mr-1">
+                                    <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitGr_@i" checked="checked" @onchange="@(() => ent.UNITMOD = ">")" />
+                                    <label class="custom-control-label" for="cbfil_unitGr_@i">&gt;</label>
+                                </div>
+                                <div class="custom-control custom-radio mr-1">
+                                    <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitEq_@i" @onchange="@(() => ent.UNITMOD = "=")" />
+                                    <label class="custom-control-label" for="cbfil_unitEq_@i">=</label>
+                                </div>
+                                <div class="custom-control custom-radio mr-1">
+                                    <input type="radio" class="custom-control-input" name="cbfil_unit_@i" id="cbfil_unitLo_@i" @onchange="@(() => ent.UNITMOD = "<")" />
+                                    <label class="custom-control-label" for="cbfil_unitLo_@i">&lt;</label>
+                                </div>
+                            </div>
+                            <div>
 
-                    <div>
-                        <MatAutocomplete Collection="@DSdata.s_units" ItemType="string" @bind-Value="@ent.UNIT" Label="Unit"></MatAutocomplete>
-                    </div>
-                    <div class="input-group mr-1">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" id="cbfil_unitCL_@i">Count</span>
-                        </div>
-                        <input type="number" class="form-control" name="cbfil_unitC_@i" id="cbfil_unitC_@i" aria-describedby="dbfil_unitCL_@i" @bind="@ent.UNITCOUNT" />
-                    </div>
+                            <div>
+                                <MatAutocomplete Collection="@DSdata.s_units" ItemType="string" @bind-Value="@ent.UNIT" Label="Unit"></MatAutocomplete>
+                            </div>
+                            <div class="input-group mr-1">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="cbfil_unitCL_@i">Count</span>
+                                </div>
+                                <input type="number" class="form-control" name="cbfil_unitC_@i" id="cbfil_unitC_@i" aria-describedby="dbfil_unitCL_@i" @bind="@ent.UNITCOUNT" />
+                            </div>
 
-                </div>
-                -->
-                </div>
+                        </div>
+                        -->
+                    </div>
                 }
             </div>
             <div>
@@ -213,8 +213,8 @@
         DBFindDic.Add(0, new DBFind());
 
         List<dsreplay> temp = new List<dsreplay>();
-        foreach (var ent in _startUp.replays)
-            temp.Add(ent.Value.First());
+        foreach (var ent in _startUp.MyReplays)
+            temp.Add(ent);
 
         myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
 
@@ -254,8 +254,8 @@
         DBFindDic = new Dictionary<int, DBFind>();
         DBFindDic.Add(0, new DBFind());
         List<dsreplay> temp = new List<dsreplay>();
-        foreach (var ent in _startUp.replays)
-            temp.Add(ent.Value.First());
+        foreach (var ent in _startUp.MyReplays)
+            temp.Add(ent);
 
         myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
     }
@@ -309,8 +309,8 @@
     void DoFind()
     {
         List<dsreplay> temp = new List<dsreplay>();
-        foreach (var ent in _startUp.replays)
-            temp.Add(ent.Value.First());
+        foreach (var ent in _startUp.MyReplays)
+            temp.Add(ent);
 
         myReplays = new List<dsreplay>(temp.OrderByDescending(o => o.GAMETIME));
 
@@ -363,8 +363,8 @@
             else
             {
                 List<dsreplay> temp = new List<dsreplay>();
-                foreach (var ent in _startUp.replays)
-                    temp.Add(ent.Value.First());
+                foreach (var ent in _startUp.MyReplays)
+                    temp.Add(ent);
 
                 DSfilter fil = new DSfilter();
                 myReplays = await Task.Run(() => { return fil.Filter(temp); });
@@ -379,7 +379,7 @@
         if (replay != null)
         {
             replay_id = replay.ID;
-            NavigationManager.NavigateTo("ladderreplays/" + replay_id);
+            NavigationManager.NavigateTo("userreplays/" + replay_id);
             RepId = replay_id;
             ladderstring = await GetReplayString(replay);
         }

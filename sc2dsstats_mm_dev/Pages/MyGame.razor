@@ -208,7 +208,7 @@
             InfoBadge = "badge-info";
             InfoBadgeMsg = "Decoding ..";
             StateHasChanged();
-            dsreplay replay = await _repserv.Decode(upRep, int.Parse(t.ToString("MMddHHmmss")));
+            dsreplay replay = await _repserv.myDecode(upRep, int.Parse(t.ToString("MMddHHmmss")), true);
             if (replay == null)
             {
                 InfoBadge = "badge-danger";
@@ -216,7 +216,6 @@
             }
             else
             {
-                _startUp.MyReplays.Add(replay);
                 myreplay = replay;
                 InfoBadge = "badge-success";
                 InfoBadgeMsg = "Replay successfully decoded";

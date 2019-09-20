@@ -250,6 +250,14 @@
             _mms.InfoBadgeMsg = "Decoding ..";
             StateHasChanged();
             dsreplay replay = await _repserv.Decode(upRep, _mms.RepID);
+            if (replay == null)
+            {
+                _mms.InfoBadge = "badge-danger";
+                _mms.InfoBadgeMsg = "Decoding failed";
+                StateHasChanged();
+                _state.Update = !_state.Update;
+                return;
+            }
             Output += "Reporting replay .." + Environment.NewLine;
             _mms.InfoBadge = "badge-info";
             _mms.InfoBadgeMsg = "Reporting ..";
