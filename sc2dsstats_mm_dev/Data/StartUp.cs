@@ -124,6 +124,12 @@ namespace dsmm_server.Data
                 if (!File.Exists(dest))
                     File.Copy(file, dest);
             }
+            foreach (var file in Directory.EnumerateFiles(Program.myreplaydir))
+            {
+                string dest = exedir + "/replays/" + Path.GetFileName(file);
+                if (!File.Exists(dest))
+                    File.Copy(file, dest);
+            }
 
             // ladder init
 
