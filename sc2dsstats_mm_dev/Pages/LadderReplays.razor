@@ -18,7 +18,7 @@
 <h3>LadderReplays</h3>
 <div class="row mb-2">
     <button class="btn btn-secondary mr-3" @onclick="@ToggleFilter">Filter</button>
-    <button class="btn btn-secondary mr-3" @onclick="@(async() => await _repserv.ReScan())">Rescan</button>
+    <!--<button class="btn btn-secondary mr-3" @onclick="@(async() => await _repserv.ReScan())">Rescan</button>-->
     <button class="btn btn-secondary mr-3" @onclick="@(async () => await _startUp.Reload())">Reload</button>
 </div>
 <div class="@FilterClass" id="div_filter">
