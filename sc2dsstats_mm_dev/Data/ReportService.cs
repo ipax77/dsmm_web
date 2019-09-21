@@ -75,8 +75,10 @@ namespace dsmm_server.Data
                             _startUp.replays[mmid].Add(replay);
                         }
                         string dest = _startUp.Exedir + "/replays/" + Path.GetFileName(rep);
-                        File.Copy(rep, dest);
+                        if (!File.Exists(dest))
+                            File.Copy(rep, dest);
 
+                        SaveDetails(replay);
                     }
                 }
                 return replay;
@@ -100,10 +102,64 @@ namespace dsmm_server.Data
                         File.AppendAllText(Program.myReplays_file, json + Environment.NewLine);
                         _startUp.MyReplays.Add(replay);
                         string dest = _startUp.Exedir + "/replays/" + Path.GetFileName(rep);
-                        File.Copy(rep, dest);
+                        if (!File.Exists(dest))
+                            File.Copy(rep, dest);
+
+                        SaveDetails(replay);
                     }
                 }
                 return replay;
+            });
+        }
+
+        public async Task SaveDetails(dsreplay replay)
+        {
+            string mydir = Program.detaildir + "/" + replay.ID.ToString();
+            if (!Directory.Exists(mydir))
+            {
+                Directory.CreateDirectory(mydir);
+                WriteToBinaryFile(mydir + "/mid.bin", replay.MIDDLE);
+
+                foreach (dsplayer pl in replay.PLAYERS)
+                {
+                    PlStats st = new PlStats();
+                    st.Loops = new List<int>(pl.STATS.Keys.ToList());
+                    st.Stats = new List<M_stats>(pl.STATS.Values.ToList());
+                    try
+                    {
+                        WriteToBinaryFile(mydir + "/" + pl.REALPOS.ToString() + "_stats.bin", st);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.ToString());
+                    }
+                }
+            }
+        }
+
+        public async Task GetDetails(dsreplay replay)
+        {
+            await Task.Run(() => { 
+                string mydir = Program.detaildir + "/" + replay.ID.ToString();
+                if (Directory.Exists(mydir))
+                {
+                    if (File.Exists(mydir + "/mid.bin"))
+                        replay.MIDDLE = ReadFromBinaryFile<List<KeyValuePair<int, int>>>(mydir + "/mid.bin");
+
+                    foreach (dsplayer pl in replay.PLAYERS)
+                    {
+                        PlStats st = new PlStats();
+                        if (File.Exists(mydir + "/" + pl.REALPOS.ToString() + "_stats.bin"))
+                            st = ReadFromBinaryFile<PlStats>(mydir + "/" + pl.REALPOS.ToString() + "_stats.bin");
+
+                        int i = 0;
+                        foreach (var ent in st.Loops)
+                        {
+                            pl.STATS[ent] = st.Stats.ElementAt(i);
+                            i++;
+                        }
+                    }
+                }
             });
         }
 
@@ -112,20 +168,39 @@ namespace dsmm_server.Data
             File.Delete(Program.myJson_file);
             File.Create(Program.myJson_file).Dispose();
 
-            await Task.Run(() => { 
-                foreach (string file in Directory.EnumerateFiles(Program.replaydir))
+
+            foreach (string file in Directory.EnumerateFiles(Program.replaydir))
+            {
+                Regex rx = new Regex(@"^(\d+)");
+                string name = Path.GetFileName(file);
+                Match m = rx.Match(name);
+                if (m.Success)
                 {
-                    Regex rx = new Regex(@"^(\d+)");
-                    string name = Path.GetFileName(file);
-                    Match m = rx.Match(name);
-                    if (m.Success)
-                    {
-                        int id = int.Parse(m.Groups[1].Value.ToString());
-                        //_s2dec.REPID = id - 1;
-                        dsreplay rep = _s2dec.DecodePython(file, true, false);
-                    }
+                    int id = int.Parse(m.Groups[1].Value.ToString());
+                    //_s2dec.REPID = id - 1;
+                    //dsreplay rep = _s2dec.DecodePython(file, true, false);
+                    await Decode(file, id, true);
                 }
-            });
+            }
+            
+            File.Delete(Program.myReplays_file);
+            File.Create(Program.myReplays_file).Dispose();
+
+            foreach (string file in Directory.EnumerateFiles(Program.myreplaydir))
+            {
+                Regex rx = new Regex(@"^(\d+)");
+                string name = Path.GetFileName(file);
+                Match m = rx.Match(name);
+                if (m.Success)
+                {
+                    string stid = m.Groups[1].Value.ToString();
+                    string nstid = new string(stid.Skip(4).ToArray());
+
+                    int id = int.Parse(nstid);
+
+                    await myDecode(file, id, true);
+                }
+            }
         }
 
         public async Task<int> CheckValid(dsreplay replay, MMgameNG game)
@@ -242,5 +317,30 @@ namespace dsmm_server.Data
 
             return true;
         }
+
+        public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
+        {
+            using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                binaryFormatter.Serialize(stream, objectToWrite);
+            }
+        }
+
+        public static T ReadFromBinaryFile<T>(string filePath)
+        {
+            using (Stream stream = File.Open(filePath, FileMode.Open))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                return (T)binaryFormatter.Deserialize(stream);
+            }
+        }
+    }
+
+    [Serializable]
+    public class PlStats
+    {
+        public List<int> Loops = new List<int>();
+        public List<M_stats> Stats = new List<M_stats>();
     }
 }

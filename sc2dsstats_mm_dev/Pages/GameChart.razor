@@ -115,7 +115,7 @@
     int replayid = 0;
     bool middleChecked = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         replayid = replay.ID;
         foreach (var ent in mystats.GetType().GetProperties())
@@ -124,7 +124,8 @@
         for (int i = 0; i <= 6; i++)
             stPlayers.Add(i, false);
 
-        await NewReplay();
+        //await NewReplay();
+        NewReplay();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -142,13 +143,9 @@
         loadFailed = false;
         replayid = replay.ID;
         if (replay.PLAYERS.FirstOrDefault().STATS.Count() == 0)
-        {
-            string reppath = Program.replaydir;
-            reppath += "/" + replay.REPLAY.Substring(48);
-            reppath += ".SC2Replay";
-            if (File.Exists(reppath))
-                await LoadReplay(reppath);
-        }
+            await _repserv.GetDetails(replay);
+        if (replay.PLAYERS.FirstOrDefault().STATS.Count() == 0)
+            loadFailed = true;
         else
         {
             mychart = await _chart.GetChartBase();
@@ -157,8 +154,6 @@
             await AddDataset("FoodUsed", 0);
         }
         loading = false;
-        if (replay.PLAYERS.FirstOrDefault().STATS.Count() == 0)
-            loadFailed = true;
         StateHasChanged();
     }
 
@@ -370,5 +365,4 @@
             foreach (var ent in mychart.data.datasets.ToList().Where(x => x.label.StartsWith("Player " + player)))
                 mychart = await _chart.RemoveDataset(ent.label);
     }
-
 }
