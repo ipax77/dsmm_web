@@ -20,6 +20,7 @@ namespace sc2dsstats_mm_dev
         public static string replaydir = workdir + "/replays";
         public static string myreplaydir = workdir + "/myreplays";
         public static string detaildir = workdir + "/details";
+        public static string commentdir = workdir + "/comments";
         public static string myJson_file = workdir + "/replays.json";
         public static string myReplays_file = workdir + "/myreplays.json";
         public static string ladder_file = workdir + "/ladder.json";

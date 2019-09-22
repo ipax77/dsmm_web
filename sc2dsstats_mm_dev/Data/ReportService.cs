@@ -12,6 +12,8 @@ using sc2dsstats_mm_dev;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using sc2dsstats_mm_dev.Models;
+using System.Threading;
 
 namespace dsmm_server.Data
 {
@@ -20,7 +22,7 @@ namespace dsmm_server.Data
         private StartUp _startUp;
         private s2decode _s2dec;
         private readonly IFileProvider _fileProvider;
-
+        private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
 
         private object dec_lock { get; set; } = new object();
 
@@ -163,6 +165,42 @@ namespace dsmm_server.Data
             });
         }
 
+        public async Task SaveComment(int repid, GameComment _com)
+        {
+            string mycomfile = Program.commentdir + "/" + repid + ".bin";
+            _readWriteLock.EnterWriteLock();
+            List<GameComment> Gamecoms = new List<GameComment>(await GetComments(repid));
+            Gamecoms.Add(_com);
+            WriteToBinaryFile(mycomfile, Gamecoms);
+            _readWriteLock.ExitWriteLock();
+        }
+
+        public async Task<List<GameComment>> GetComments(int repid)
+        {
+            List<GameComment> Gamecoms = new List<GameComment>();
+            _readWriteLock.EnterReadLock();
+            string mycomfile = Program.commentdir + "/" + repid + ".bin";
+            if (File.Exists(mycomfile))
+            {
+                try
+                {
+                    Gamecoms = ReadFromBinaryFile<List<GameComment>>(mycomfile);
+                } catch { }
+            }
+            _readWriteLock.ExitReadLock();
+            return Gamecoms;
+        }
+
+        public async Task DeleteComment(int repid, GameComment _com)
+        {
+            string mycomfile = Program.commentdir + "/" + repid + ".bin";
+            _readWriteLock.EnterWriteLock();
+            List<GameComment> Gamecoms = new List<GameComment>(await GetComments(repid));
+            Gamecoms.Remove(_com);
+            WriteToBinaryFile(mycomfile, Gamecoms);
+            _readWriteLock.ExitWriteLock();
+        }
+
         public async Task ReScan()
         {
             File.Delete(Program.myJson_file);
@@ -233,6 +271,32 @@ namespace dsmm_server.Data
                 }
                 return valid;
             });
+        }
+
+        public async Task RemoveUserReplay(int myrepid)
+        {
+            dsreplay rep = _startUp.MyReplays.Where(x => x.ID == myrepid).FirstOrDefault();
+            if (rep != null)
+            {
+                _startUp.MyReplays.Remove(rep);
+                try
+                {
+                    File.Delete(rep.REPLAY);
+                } catch { }
+
+                if (Directory.Exists(Program.detaildir + "/" + rep.ID))
+                {
+                    try
+                    {
+                        Directory.Delete(Program.detaildir + "/" + rep.ID, true);
+                    } catch { }
+                }
+
+                string removeline = JsonSerializer.Serialize(rep).Trim();
+                var lines = File.ReadAllLines(Program.myReplays_file).Where(line => line.Trim() != removeline).ToArray();
+                File.WriteAllLines(Program.myReplays_file, lines);
+                await _startUp.Reload();
+            }
         }
 
         public async Task Save(MMgameNG game)

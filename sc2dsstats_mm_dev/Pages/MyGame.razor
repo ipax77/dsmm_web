@@ -65,6 +65,7 @@
     }
 </div>
 
+<a>By uploading the replay you agree, that the replay and its data will be used on this website.</a>
 <div>
     <button class="btn btn-primary" @onclick="@ReadFile">Upload</button>
     <button class="btn btn-sm btn-primary" @onclick="@ClearFile">Clear</button>
@@ -73,6 +74,11 @@
 </div>
 @if (myreplay != null)
 {
+<div>
+    <br />
+    <h5>Your replay link: <a href="userreplays/@myreplay.ID">@myreplay.ID</a></h5>
+    <br />
+</div>
 <div class="container-fluid">
     <Game replay="myreplay" _pl="@(new MMplayerNG())" />
 </div>

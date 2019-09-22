@@ -12,6 +12,7 @@ using sc2dsstats.Data;
 using sc2dsstats_mm_dev;
 using DSmm.Trueskill;
 using System.Reflection;
+using sc2dsstats_mm_dev.Models;
 
 namespace dsmm_server.Data
 {
@@ -29,6 +30,7 @@ namespace dsmm_server.Data
         private DbContextOptions<MMdb> _mmdb;
         public MMdb _db { get; set; }
         public string Exedir { get; set; }
+        public Dictionary<int, List<GameComment>> GameComments { get; set; } = new Dictionary<int, List<GameComment>>();  
 
         public StartUp(DbContextOptions<MMdb> mmdb)
         {
@@ -222,6 +224,23 @@ namespace dsmm_server.Data
                         if (!replays.ContainsKey(rep.ID))
                             replays[rep.ID] = new List<dsreplay>();
                         replays[rep.ID].Add(rep);
+                    }
+                }
+            });
+
+            MyReplays.Clear();
+            await Task.Run(() => { 
+                foreach (var line in File.ReadAllLines(Program.myReplays_file))
+                {
+                    dsreplay rep = null;
+                    try
+                    {
+                        rep = JsonSerializer.Deserialize<dsreplay>(line);
+                    }
+                    catch { }
+                    if (rep != null)
+                    {
+                        MyReplays.Add(rep);
                     }
                 }
             });

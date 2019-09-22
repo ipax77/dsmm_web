@@ -13,6 +13,7 @@
 @inject NavigationManager NavigationManager
 @inject StartUp _startUp
 @inject ReportService _repserv
+@inject AuthenticationStateProvider _auth
 @implements IDisposable
 
 <h3>User Replays</h3>
@@ -50,38 +51,35 @@
                             }
                         }
                         <th>Download</th>
+                        @if (isAdmin)
+                        {
+                            <th>x</th>
+                        }
+
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var ent in myReplays.Skip(skip).Take(take))
                     {
+                        string tableclass = "";
                         @if (replay_id == ent.ID)
                         {
-                            <tr class="table-info table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
-                                @foreach (var opt in RepOpt.Opt.Keys)
-                                {
-                                    if (RepOpt.Opt[opt] == true)
-                                    {
-                                        <td>@GetRepProperty(ent, opt)</td>
-                                    }
-                                }
-                                <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
-                            </tr>
-
+                            tableclass = "table-info";
                         }
-                        else
-                        {
-                            <tr class="table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
-                                @foreach (var opt in RepOpt.Opt.Keys)
+                        <tr class="@tableclass table-row sort-link" @onclick="@(() => ShowGame(@ent.ID))">
+                            @foreach (var opt in RepOpt.Opt.Keys)
+                            {
+                                if (RepOpt.Opt[opt] == true)
                                 {
-                                    if (RepOpt.Opt[opt] == true)
-                                    {
-                                        <td>@GetRepProperty(ent, opt)</td>
-                                    }
+                                    <td>@GetRepProperty(ent, opt)</td>
                                 }
-                                <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
-                            </tr>
-                        }
+                            }
+                            <td><a href="download/@(Path.GetFileName(ent.REPLAY))">Download</a></td>
+                            @if (isAdmin)
+                            {
+                                <td><button class="btn btn-sm btn-primary" @onclick="@(async() => await _repserv.RemoveUserReplay(ent.ID))">x</button></td>
+                            }
+                        </tr>
                     }
                 </tbody>
             </table>
@@ -176,8 +174,7 @@
 </div>
 <br />
 <div class="container-fluid @GameClass">
-    <Game replay="replay" _pl="@(new MMplayerNG())" />
-    <label>@ladderstring</label>
+    <Game replay="replay" _pl="@(new MMplayerNG())" isAdmin="@isAdmin" />
 </div>
 
 @code {
@@ -196,6 +193,10 @@
     string FilterClass => _options.Filter ? null : "collapse";
     string mb = "";
     string ladderstring = "";
+    bool isAdmin = false;
+    string AuthName = "";
+    string Playername = "";
+
 
     public class DBFilter
     {
@@ -205,7 +206,7 @@
     Dictionary<int, DBFilter> DBFilterDic;
     Dictionary<int, DBFind> DBFindDic;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         DBFilterDic = new Dictionary<int, DBFilter>();
         DBFilterDic.Add(0, new DBFilter());
@@ -222,7 +223,26 @@
         if (myReplays.Count() > 0 && (RepId == null || RepId == 0))
             RepId = myReplays.First().ID;
 
+        
         ShowGame(RepId);
+
+        var authState = await _auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        AuthName = user.Identity.Name;
+        if (user.Identity.IsAuthenticated)
+        {
+            if (_startUp.Auth.ContainsKey(user.Identity.Name))
+            {
+                Playername = _startUp.Auth[user.Identity.Name];
+            }
+            else
+            {
+                Playername = "Anonymous";
+            }
+        }
+        if (Playername == "PAX")
+            isAdmin = true;
+
         _options.PropertyChanged += OptionChanged;
     }
 
