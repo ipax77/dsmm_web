@@ -55,12 +55,12 @@
     <PackageReference Include="Blazor.Extensions.Canvas" Version="0.4.0" />
     <PackageReference Include="IronPython" Version="2.7.10-alpha0" />
     <PackageReference Include="IronPython.StdLib" Version="2.7.10-alpha0" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="3.0.0-rc1.19457.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.0.0-rc1.19457.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="3.0.0-rc1.19457.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.0.0-rc1.19456.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.0.0-rc1.19456.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.0.0-rc1.19456.14">
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="3.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="3.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

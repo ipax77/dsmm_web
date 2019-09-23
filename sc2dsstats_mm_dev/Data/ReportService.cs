@@ -49,7 +49,8 @@ namespace dsmm_server.Data
                     .CreateReadStream();
 
                 return new FileStreamResult(stream, "application/octet-stream");
-            } else
+            }
+            else
                 return null;
         }
 
@@ -141,8 +142,14 @@ namespace dsmm_server.Data
 
         public async Task GetDetails(dsreplay replay, string detaildir = Program.detaildir)
         {
-            await Task.Run(() => { 
+            await Task.Run(() =>
+            {
+                // /data/tournaments/20190921/replays/Team5_vs_Team6_1.SC2Replay
+                // /data/tournaments/20190921/7
                 string mydir = detaildir + "/" + replay.ID.ToString();
+                if (replay.REPLAY.Contains("tournaments"))
+                    mydir = Path.GetDirectoryName(Path.GetDirectoryName(replay.REPLAY)) + "/" + replay.ID;
+
                 if (Directory.Exists(mydir))
                 {
                     if (File.Exists(mydir + "/mid.bin"))
@@ -185,7 +192,8 @@ namespace dsmm_server.Data
                 try
                 {
                     Gamecoms = ReadFromBinaryFile<List<GameComment>>(mycomfile);
-                } catch { }
+                }
+                catch { }
             }
             _readWriteLock.ExitReadLock();
             return Gamecoms;
@@ -220,7 +228,7 @@ namespace dsmm_server.Data
                     await Decode(file, id, true);
                 }
             }
-            
+
             File.Delete(Program.myReplays_file);
             File.Create(Program.myReplays_file).Dispose();
 
@@ -268,8 +276,8 @@ namespace dsmm_server.Data
                         File.AppendAllText(jsonfile, json + Environment.NewLine);
                         _startUp.TournamentReplays[Path.GetFileName(tdir)].Add(replay);
                         string dest = _startUp.Exedir + "/treplays/" + Path.GetFileName(tdir) + "/" + Path.GetFileName(file);
-                        if (!Directory.Exists(Path.GetPathRoot(dest)))
-                            Directory.CreateDirectory(Path.GetPathRoot(dest));
+                        if (!Directory.Exists(Path.GetDirectoryName(dest)))
+                            Directory.CreateDirectory(Path.GetDirectoryName(dest));
                         if (!File.Exists(dest))
                             File.Copy(file, dest);
 
@@ -283,7 +291,8 @@ namespace dsmm_server.Data
         public async Task<int> CheckValid(dsreplay replay, MMgameNG game)
         {
             int valid = 0;
-            return await Task.Run(() => { 
+            return await Task.Run(() =>
+            {
                 HashSet<string> game_Names = game.GetPlayers().Select(s => s.Name).ToHashSet();
                 foreach (dsplayer dspl in replay.PLAYERS)
                 {
@@ -321,14 +330,16 @@ namespace dsmm_server.Data
                 try
                 {
                     File.Delete(rep.REPLAY);
-                } catch { }
+                }
+                catch { }
 
                 if (Directory.Exists(Program.detaildir + "/" + rep.ID))
                 {
                     try
                     {
                         Directory.Delete(Program.detaildir + "/" + rep.ID, true);
-                    } catch { }
+                    }
+                    catch { }
                 }
 
                 string removeline = JsonSerializer.Serialize(rep).Trim();
