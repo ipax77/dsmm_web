@@ -114,9 +114,9 @@ namespace dsmm_server.Data
             });
         }
 
-        public async Task SaveDetails(dsreplay replay)
+        public async Task SaveDetails(dsreplay replay, string detaildir = Program.detaildir)
         {
-            string mydir = Program.detaildir + "/" + replay.ID.ToString();
+            string mydir = detaildir + "/" + replay.ID.ToString();
             if (!Directory.Exists(mydir))
             {
                 Directory.CreateDirectory(mydir);
@@ -139,10 +139,10 @@ namespace dsmm_server.Data
             }
         }
 
-        public async Task GetDetails(dsreplay replay)
+        public async Task GetDetails(dsreplay replay, string detaildir = Program.detaildir)
         {
             await Task.Run(() => { 
-                string mydir = Program.detaildir + "/" + replay.ID.ToString();
+                string mydir = detaildir + "/" + replay.ID.ToString();
                 if (Directory.Exists(mydir))
                 {
                     if (File.Exists(mydir + "/mid.bin"))
@@ -238,6 +238,45 @@ namespace dsmm_server.Data
 
                     await myDecode(file, id, true);
                 }
+            }
+        }
+
+        public async Task ReScan(string tdir)
+        {
+            string jsonfile = tdir + "/treplays.json";
+            if (File.Exists(jsonfile))
+                File.Delete(jsonfile);
+            File.Create(jsonfile).Dispose();
+
+            if (!_startUp.TournamentReplays.ContainsKey(Path.GetFileName(tdir)))
+                _startUp.TournamentReplays.Add(Path.GetFileName(tdir), new List<dsreplay>());
+            else
+                _startUp.TournamentReplays[Path.GetFileName(tdir)].Clear();
+
+            if (Directory.Exists(tdir + "/replays"))
+            {
+                int i = 0;
+                foreach (string file in Directory.EnumerateFiles(tdir + "/replays"))
+                {
+                    i++;
+                    dsreplay replay = _s2dec.DecodePython(file, false, true);
+                    if (replay != null)
+                    {
+                        replay.ID = i;
+                        replay.REPLAY = file;
+                        var json = JsonSerializer.Serialize(replay);
+                        File.AppendAllText(jsonfile, json + Environment.NewLine);
+                        _startUp.TournamentReplays[Path.GetFileName(tdir)].Add(replay);
+                        string dest = _startUp.Exedir + "/treplays/" + Path.GetFileName(tdir) + "/" + Path.GetFileName(file);
+                        if (!Directory.Exists(Path.GetPathRoot(dest)))
+                            Directory.CreateDirectory(Path.GetPathRoot(dest));
+                        if (!File.Exists(dest))
+                            File.Copy(file, dest);
+
+                        SaveDetails(replay, tdir);
+                    }
+                }
+
             }
         }
 

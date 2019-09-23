@@ -15,15 +15,15 @@ namespace sc2dsstats_mm_dev
     public class Program
     {
         public static int DEBUG = 0;
-        public static string workdir = "/data";
-        public static string myScan_log = workdir + "/log.txt";
-        public static string replaydir = workdir + "/replays";
-        public static string myreplaydir = workdir + "/myreplays";
-        public static string detaildir = workdir + "/details";
-        public static string commentdir = workdir + "/comments";
-        public static string myJson_file = workdir + "/replays.json";
-        public static string myReplays_file = workdir + "/myreplays.json";
-        public static string ladder_file = workdir + "/ladder.json";
+        public const string workdir = "/data";
+        public const string myScan_log = workdir + "/log.txt";
+        public const string replaydir = workdir + "/replays";
+        public const string myreplaydir = workdir + "/myreplays";
+        public const string detaildir = workdir + "/details";
+        public const string commentdir = workdir + "/comments";
+        public const string myJson_file = workdir + "/replays.json";
+        public const string myReplays_file = workdir + "/myreplays.json";
+        public const string ladder_file = workdir + "/ladder.json";
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
         public static void Main(string[] args)
         {

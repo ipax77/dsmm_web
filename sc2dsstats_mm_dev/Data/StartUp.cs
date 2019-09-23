@@ -25,6 +25,7 @@ namespace dsmm_server.Data
         public ConcurrentDictionary<string, MMplayerNG> MMraces { get; set; } = new ConcurrentDictionary<string, MMplayerNG>();
         public ConcurrentDictionary<int, List<dsreplay>> replays = new ConcurrentDictionary<int, List<dsreplay>>();
         public List<dsreplay> MyReplays { get; set; } = new List<dsreplay>();
+        public Dictionary<string, List<dsreplay>> TournamentReplays { get; set; } = new Dictionary<string, List<dsreplay>>();
         public HashSet<string> repHash = new HashSet<string>();
         public Dictionary<string, string> Auth = new Dictionary<string, string>();
         private DbContextOptions<MMdb> _mmdb;
@@ -132,6 +133,40 @@ namespace dsmm_server.Data
                 if (!File.Exists(dest))
                     File.Copy(file, dest);
             }
+
+            foreach (var dir in Directory.EnumerateDirectories(Program.workdir + "/tournaments"))
+            {
+                if (File.Exists(dir + "/treplays.json"))
+                {
+                    string tourny = Path.GetFileName(dir);
+                    TournamentReplays.Add(tourny, new List<dsreplay>());
+                    foreach (var line in File.ReadAllLines(dir + "/treplays.json"))
+                    {
+                        dsreplay rep = null;
+                        try
+                        {
+                            rep = JsonSerializer.Deserialize<dsreplay>(line);
+                        }
+                        catch { }
+                        if (rep != null)
+                        {
+                            TournamentReplays[tourny].Add(rep);
+                        }
+                    }
+
+                    if (!Directory.Exists(Exedir + "/treplays/" + tourny))
+                        Directory.CreateDirectory(Exedir + "/treplays/" + tourny);
+
+                    foreach (var file in Directory.EnumerateFiles(dir + "/replays"))
+                    {
+                        string dest = Exedir + "/treplays/" + tourny + "/" + Path.GetFileName(file);
+                        if (!File.Exists(dest))
+                            File.Copy(file, dest);
+                    }
+
+                }
+            }
+
 
             // ladder init
 
@@ -241,6 +276,42 @@ namespace dsmm_server.Data
                     if (rep != null)
                     {
                         MyReplays.Add(rep);
+                    }
+                }
+            });
+
+            TournamentReplays.Clear();
+            await Task.Run(() => { 
+                foreach (var dir in Directory.EnumerateDirectories(Program.workdir + "/tournaments"))
+                {
+                    if (File.Exists(dir + "/treplays.json"))
+                    {
+                        string tourny = Path.GetFileName(dir);
+                        TournamentReplays.Add(tourny, new List<dsreplay>());
+                        foreach (var line in File.ReadAllLines(dir + "/treplays.json"))
+                        {
+                            dsreplay rep = null;
+                            try
+                            {
+                                rep = JsonSerializer.Deserialize<dsreplay>(line);
+                            }
+                            catch { }
+                            if (rep != null)
+                            {
+                                TournamentReplays[tourny].Add(rep);
+                            }
+                        }
+
+                        if (!Directory.Exists(Exedir + "/treplays/" + tourny))
+                            Directory.CreateDirectory(Exedir + "/treplays/" + tourny);
+
+                        foreach (var file in Directory.EnumerateFiles(dir + "/replays"))
+                        {
+                            string dest = Exedir + "/treplays/" + tourny + "/" + Path.GetFileName(file);
+                            if (!File.Exists(dest))
+                                File.Copy(file, dest);
+                        }
+
                     }
                 }
             });

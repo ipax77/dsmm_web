@@ -37,5 +37,31 @@ namespace sc2dsstats_mm_dev.Data
             } else
                 return (IActionResult)NotFound();
         }
+
+        [HttpGet("tdownload/{tournamentId}/{replayID}")]
+        public IActionResult GetTFile(string tournamentId, string replayID)
+        {
+            if (replayID.Contains(".."))
+                return (IActionResult)NotFound();
+            if (!replayID.Any(ch => Char.IsLetterOrDigit(ch) || ch == '_'))
+                return (IActionResult)NotFound();
+            if (replayID.Length > 100)
+                return (IActionResult)NotFound();
+
+            if (tournamentId.Contains(".."))
+                return (IActionResult)NotFound();
+            if (!tournamentId.Any(ch => Char.IsLetterOrDigit(ch) || ch == '_'))
+                return (IActionResult)NotFound();
+            if (tournamentId.Length > 100)
+                return (IActionResult)NotFound();
+
+            if (regexItem.IsMatch(replayID) && regexItem.IsMatch(tournamentId))
+            {
+                string myfile = "treplays/" + tournamentId + "/" + replayID;
+                return _repserv.GetFileAsStream(myfile) ?? (IActionResult)NotFound();
+            }
+            else
+                return (IActionResult)NotFound();
+        }
     }
 }
