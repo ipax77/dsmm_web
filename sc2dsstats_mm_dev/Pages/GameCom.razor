@@ -1,0 +1,232 @@
+﻿@page "/gamecomment"
+@page "/gamecomment/{ComId:int}"
+
+@using sc2dsstats_mm_dev.Models
+@using dsmm_server.Data
+@using DSmm.Models
+@inject StartUp _startUp
+@inject AuthenticationStateProvider _auth
+@implements IDisposable
+
+@if (com != null && com.RepId > 0)
+{
+    <div class="container-fluid">
+        <h4><span class="badge badge-danger @PleaseLogin">Please login to comment/vote</span></h4>
+        @if (com.YouTube != null)
+        {
+            <div>
+                <iframe width="560" height="315" src="@com.YouTube" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        }
+        @if (isAdmin == true)
+        {
+            <button class="btn btn-primary" @onclick="@( async() => await Delete())">Delete</button>
+        }
+        @if (com.YouTube == null || com.YouTube.Length == 0)
+        {
+            <button class="btn btn-sm btn-primary" @onclick="@(() => AddYouTube = !AddYouTube)">Add YouTubeLink</button>
+        }
+        @if (AddYouTube == true)
+        {
+            <div class="form-group">
+                <label>
+                    YouTubeLink
+                    <textarea name="ComText" id="ComText" placeholder="https://www.youtube.com/embed/" required @bind="@YouTubeLink" class="form-control" />
+                </label>
+            </div>
+            <button class="btn btn-secondary" @onclick="@( async () => await AddYouTubeLink())">Save</button>
+        }
+        <div class="row">
+            <h4><span class="badge badge-secondary vote-link mr-2" @onclick="@(() => Upvote())">Up @com.Upvotes.Count()</span></h4>
+            <h4><span class="badge badge-secondary vote-link mr-2" @onclick="@(() => Downvote())">Down @com.Downvotes.Count()</span></h4>
+        </div>
+        @foreach (var ent in com.Comments.OrderByDescending(o => o.Time))
+        {
+            <a>@ent.User   @ent.Time.ToShortDateString() @ent.Time.ToShortTimeString()</a>
+            <div class="jumbotron">
+                @ent.Comment
+            </div>
+            @if (isAdmin == true)
+            {
+                <button class="btn btn-danger" @onclick="@( async() => await Delete(ent))">Delete</button>
+            }
+        }
+        <button class="btn btn-sm btn-primary" @onclick="@(() => AddComment = !AddComment)">Add comment</button>
+        @if (AddComment == true)
+        {
+            <div>
+                <div class="form-group w-50">
+                    <label>
+                        Comment
+                        <textarea name="ComText" id="ComText" placeholder="Your game comment" required @bind="@Comment" class="form-control" />
+                    </label>
+                </div>
+                <button class="btn btn-secondary" @onclick="@( async() => await SaveComment())">Save</button>
+            </div>
+        }
+    </div>
+} else
+{
+    <button class="btn btn-sm btn-primary" @onclick="@(() => NewComment())">Add comment</button>
+}
+
+@code {
+    [Parameter]
+    public GameComment com { get; set; }
+
+    [Parameter]
+    public int RepID { get; set; }
+
+    [Parameter]
+    public int ComId { get; set; }
+
+    string AuthName = "";
+    MMplayerNG Player;
+    string PleaseLogin = "d-none";
+    bool ComUpdate = false;
+    bool AddComment = false;
+    bool AddYouTube = false;
+    bool isAdmin = false;
+
+    string Comment = "";
+    string YouTubeLink = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await _auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            AuthName = user.Identity.Name;
+            if (_startUp.Auth.ContainsKey(user.Identity.Name))
+            {
+                AuthName = _startUp.Auth[user.Identity.Name];
+                Player = _startUp.MMplayers[AuthName];
+            }
+        }
+        //DebugCom();
+        if (AuthName == "PAX")
+            isAdmin = true;
+
+    }
+
+    void DebugCom()
+    {
+        AuthName = "PAX";
+        com = new GameComment();
+        com.RepId = 1;
+        com.Stars = 3;
+        com.YouTube = "https://www.youtube.com/embed/6AmSa8AjFfU";
+        UserComment ucom = new UserComment();
+        ucom.User = "PAX";
+        ucom.Time = DateTime.Now;
+        ucom.Comment = "First game of the tournament (my mic was acidently on, sry for the mumbling..). Our setup was Alarak, Kerrigan, Abathur to start with. ";
+        com.Comments.Add(ucom);
+    }
+
+    void NewComment()
+    {
+        com = new GameComment();
+        com.RepId = RepID;
+        StateHasChanged();
+    }
+
+    void Upvote()
+    {
+        if (AuthName != null && AuthName.Length > 0)
+        {
+            com.Upvotes.Add(AuthName);
+            if (com.Downvotes.Contains(AuthName))
+                com.Downvotes.Remove(AuthName);
+            PleaseLogin = "d-none";
+            ComUpdate = true;
+        } else
+        {
+            PleaseLogin = "";
+        }
+        StateHasChanged();
+    }
+
+    void Downvote()
+    {
+        if (AuthName != null && AuthName.Length > 0)
+        {
+            com.Downvotes.Add(AuthName);
+            if (com.Upvotes.Contains(AuthName))
+                com.Upvotes.Remove(AuthName);
+            PleaseLogin = "d-none";
+            ComUpdate = true;
+        } else
+        {
+            PleaseLogin = "";
+        }
+        StateHasChanged();
+    }
+
+    async Task SaveComment()
+    {
+        if (Comment != null && Comment.Length > 0 && AuthName != null && AuthName.Length > 0)
+        {
+            UserComment newcom = new UserComment();
+            newcom.Time = DateTime.UtcNow;
+            newcom.User = AuthName;
+            newcom.Comment = Comment;
+            com.Comments.Add(newcom);
+            PleaseLogin = "d-none";
+            ComUpdate = true;
+            await Save();
+        } else
+        {
+            PleaseLogin = "";
+        }
+        StateHasChanged();
+    }
+
+    async Task AddYouTubeLink()
+    {
+        if (YouTubeLink != null && YouTubeLink.Length > 0 && YouTubeLink.Length < 50 && YouTubeLink.StartsWith("https://www.youtube.com/embed/") && AuthName != null && AuthName.Length > 0)
+        {
+            com.YouTube = YouTubeLink;
+            await Save();
+            PleaseLogin = "d-none";
+            ComUpdate = true;
+        } else
+        {
+            PleaseLogin = "";
+        }
+    }
+
+    async Task Delete()
+    {
+        try
+        {
+            com.YouTube = "";
+            await Save();
+        } catch { }
+        StateHasChanged();
+    }
+
+    async Task Delete(UserComment delcom)
+    {
+        try
+        {
+            com.Comments.Remove(delcom);
+            await Save();
+        } catch { }
+        StateHasChanged();
+    }
+
+    async Task Save()
+    {
+        await _startUp.Save(com);
+    }
+
+    public void Dispose()
+    {
+        if (ComUpdate == true)
+        {
+            Save();
+        }
+        PleaseLogin = "d-none";
+    }
+}

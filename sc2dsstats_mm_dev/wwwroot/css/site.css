@@ -117,6 +117,10 @@ app {
     text-decoration: underline;
 }
 
+.vote-link {
+    cursor: pointer;
+}
+
 @media (max-width: 767.98px) {
     .main .top-row {
         display: none;

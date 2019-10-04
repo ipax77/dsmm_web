@@ -1,11 +1,11 @@
 ﻿@page "/game"
 @using System.Linq
-@using System.Globalization
-@using System.ComponentModel
-@using pax.s2decode.Models;
+@using pax.s2decode.Models
 @using sc2dsstats.Data
-@using DSmm.Models;
-@using dsmm_server.Data;
+@using DSmm.Models
+@using dsmm_server.Data
+@using sc2dsstats_mm_dev.Models
+
 @inject StartUp _startUp
 
 @if (replay != null)
@@ -13,6 +13,11 @@
     @if (replay.ID != replayid)
     {
         @NewReplay()
+    }
+    <button class="btn btn-sm btn-primary" @onclick="@(() => showComment = !showComment)">Show/Hide game comments</button>
+    @if (showComment == true)
+    {
+        <GameCom com="com" RepID="@replay.ID" />
     }
     <div class="row">
         <button class="btn btn-sm btn-secondary mb-1" @onclick="@(() => showDetails = !showDetails)">Show details</button>
@@ -169,7 +174,8 @@
                                         @if (_startUp.MMplayers.ContainsKey(pl.NAME))
                                         {
                                             <td>@pl.NAME</td>
-                                        } else
+                                        }
+                                        else
                                         {
                                             <td></td>
                                         }
@@ -277,6 +283,8 @@
     public MMplayerNG _pl { get; set; }
     [Parameter]
     public bool isAdmin { get; set; } = false;
+    [Parameter]
+    public bool showComment { get; set; } = false;
 
     string TeamClass = "badge-primary";
     string PlayerClass = "table-primary";
@@ -288,6 +296,7 @@
     int replayid = 0;
     bool showDetails = false;
     bool showMap = false;
+    GameComment com;
 
     static double MIN5 = 6720;
     static double MIN10 = 13440;
@@ -300,21 +309,20 @@
             { "MIN5", MIN5 },
             { "MIN10", MIN10 },
             { "MIN15", MIN15 }
-                    };
+                        };
 
     protected override void OnInitialized()
     {
-        BuildCheck = new List<bool>
-            ();
+        com = new GameComment();
+        BuildCheck = new List<bool>();
         for (int i = 0; i <= 7; i++)
         {
             BuildCheck.Add(false);
         }
 
         if (replay != null)
-        {
             BreakpointMid.Add("ALL", replay.DURATION);
-        }
+
     }
 
     object NewReplay()
@@ -323,6 +331,8 @@
         showDetails = false;
         if (replay != null)
         {
+            if (_startUp.GameComments.ContainsKey(replay.ID))
+                com = _startUp.GameComments[replay.ID];
             BreakpointMid["ALL"] = replay.DURATION;
         }
 

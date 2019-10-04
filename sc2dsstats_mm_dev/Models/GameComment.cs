@@ -8,11 +8,12 @@ namespace sc2dsstats_mm_dev.Models
     [Serializable]
     public class GameComment
     {
-        public int RepId { get; set; }
+        public int RepId { get; set; } = 0;
         public List<UserComment> Comments { get; set; } = new List<UserComment>();
-        public int Upvotes { get; set; }
-        public int Downvotes { get; set; }
+        public HashSet<string> Upvotes { get; set; } = new HashSet<string>();
+        public HashSet<string> Downvotes { get; set; } = new HashSet<string>();
         public int Stars { get; set; }
+        public string YouTube { get; set; }
     }
 
     [Serializable]

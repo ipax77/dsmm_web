@@ -31,7 +31,7 @@ namespace dsmm_server.Data
         private DbContextOptions<MMdb> _mmdb;
         public MMdb _db { get; set; }
         public string Exedir { get; set; }
-        public Dictionary<int, List<GameComment>> GameComments { get; set; } = new Dictionary<int, List<GameComment>>();  
+        public Dictionary<int, GameComment> GameComments { get; set; } = new Dictionary<int, GameComment>();  
 
         public StartUp(DbContextOptions<MMdb> mmdb)
         {
@@ -167,6 +167,12 @@ namespace dsmm_server.Data
                 }
             }
 
+            foreach (var file in Directory.EnumerateFiles(Program.commentdir))
+            {
+                GameComment com = JsonSerializer.Deserialize<GameComment>(File.ReadAllText(file));
+                if (com != null)
+                    GameComments[com.RepId] = com;
+            }
 
             // ladder init
 
@@ -239,6 +245,14 @@ namespace dsmm_server.Data
 
             }
             // **/
+        }
+
+        public async Task Save(GameComment com)
+        {
+            GameComments[com.RepId] = com;
+            var json = JsonSerializer.Serialize(com);
+            string outfile = Program.commentdir + "/" + com.RepId + ".json";
+            await File.WriteAllTextAsync(outfile, json);
         }
 
         public async Task Reload()
