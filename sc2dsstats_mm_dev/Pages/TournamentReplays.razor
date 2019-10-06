@@ -21,28 +21,72 @@
     <button class="btn btn-secondary mr-3" @onclick="@ToggleFilter">Filter</button>
     @if (isAdmin == true)
     {
-        <button class="btn btn-secondary mr-3" @onclick="@(async() => await _repserv.ReScan(Program.workdir + "/tournaments/" + Tournament))">Rescan</button>
+        <button class="btn btn-secondary mr-3" @onclick="@(async () => await _repserv.ReScan(Program.workdir + "/tournaments/" + Tournament))">Rescan</button>
+
+        <button class="btn btn-secondary mr-3" @onclick="@(async () => await _startUp.Reload())">Reload</button>
     }
-    <button class="btn btn-secondary mr-3" @onclick="@(async () => await _startUp.Reload())">Reload</button>
 </div>
 <div class="@FilterClass" id="div_filter">
     <div class="card card-body">
         <Filter />
     </div>
 </div>
-<div class="w-25">
-    <a>Tournament date</a>
-    <select id="semode" class="form-control" @onchange="@TChange">
-        @foreach (var ent in _startUp.TournamentReplays.Keys.OrderByDescending(o => o)) {
-            if (ent == Tournament)
+<div class="row">
+    <div class="w-25">
+        <a>Tournament date</a>
+        <select id="semode" class="form-control" @onchange="@TChange">
+            @foreach (var ent in _startUp.TournamentReplays.Keys.OrderByDescending(o => o))
             {
-                <option selected="selected" value="@ent">@ent</option>
-            } else
-            {
-                <option value="@ent">@ent</option>
+                if (ent == Tournament)
+                {
+                    <option selected="selected" value="@ent">@ent</option>
+                }
+                else
+                {
+                    <option value="@ent">@ent</option>
+                }
             }
+        </select>
+    </div>
+    @if (_startUp.TournamentInfo.ContainsKey(Tournament))
+    {
+        @if (_startUp.TournamentInfo[Tournament].Info != null)
+        {
+            <div class="ml-5">
+                <div class="form-group mr-2">
+                    <div class="d-flex flex-column">
+                        <label for="linfo" class="control-label">Info</label>
+                        <h4>
+                            <span class="badge badge-light" style="min-width: 50px;" id="linfo">
+                                @_startUp.TournamentInfo[Tournament].Info
+                            </span>
+                        </h4>
+                    </div>
+                </div>
+            </div>
         }
-    </select>
+        @if (_startUp.TournamentInfo[Tournament].Winner != null && _startUp.TournamentInfo[Tournament].Winner.Length > 0)
+        {
+        <div class="ml-5">
+            <div class="form-group mr-2">
+                <div class="d-flex flex-column">
+                    <label for="lwinner" class="control-label">Winner</label>
+                    <h4>
+                        <span class="badge badge-success" style="min-width: 50px;" id="lwinner">
+                            @_startUp.TournamentInfo[Tournament].Winner
+                        </span>
+                    </h4>
+                </div>
+            </div>
+        </div>
+        }
+        @if (_startUp.TournamentInfo[Tournament].Bracket != null && _startUp.TournamentInfo[Tournament].Bracket.Length > 0)
+        {
+            <div class="ml-5">
+                <a href="@_startUp.TournamentInfo[Tournament].Bracket">Bracket</a>
+            </div>
+        }
+    }
 </div>
 <div class="container-fluid">
     <div class="row">
@@ -267,7 +311,7 @@
         if (Playername == "PAX")
             isAdmin = true;
 
-        //isAdmin = true;
+        isAdmin = true;
 
         _options.PropertyChanged += OptionChanged;
     }

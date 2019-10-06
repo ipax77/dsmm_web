@@ -26,6 +26,7 @@ namespace dsmm_server.Data
         public ConcurrentDictionary<int, List<dsreplay>> replays = new ConcurrentDictionary<int, List<dsreplay>>();
         public List<dsreplay> MyReplays { get; set; } = new List<dsreplay>();
         public Dictionary<string, List<dsreplay>> TournamentReplays { get; set; } = new Dictionary<string, List<dsreplay>>();
+        public Dictionary<string, TournamentInfo> TournamentInfo { get; set; } = new Dictionary<string, TournamentInfo>();
         public HashSet<string> repHash = new HashSet<string>();
         public Dictionary<string, string> Auth = new Dictionary<string, string>();
         private DbContextOptions<MMdb> _mmdb;
@@ -136,9 +137,9 @@ namespace dsmm_server.Data
 
             foreach (var dir in Directory.EnumerateDirectories(Program.workdir + "/tournaments"))
             {
+                string tourny = Path.GetFileName(dir);
                 if (File.Exists(dir + "/treplays.json"))
                 {
-                    string tourny = Path.GetFileName(dir);
                     TournamentReplays.Add(tourny, new List<dsreplay>());
                     foreach (var line in File.ReadAllLines(dir + "/treplays.json"))
                     {
@@ -163,7 +164,11 @@ namespace dsmm_server.Data
                         if (!File.Exists(dest))
                             File.Copy(file, dest);
                     }
-
+                }
+                if (File.Exists(dir + "/info.json"))
+                {
+                    TournamentInfo t = JsonSerializer.Deserialize<TournamentInfo>(File.ReadAllText(dir + "/info.json"));
+                    TournamentInfo[tourny] = t;
                 }
             }
 
