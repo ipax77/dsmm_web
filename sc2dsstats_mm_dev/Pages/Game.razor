@@ -333,6 +333,8 @@
         {
             if (_startUp.GameComments.ContainsKey(replay.ID))
                 com = _startUp.GameComments[replay.ID];
+            else
+                com = new GameComment();
             BreakpointMid["ALL"] = replay.DURATION;
         }
 
